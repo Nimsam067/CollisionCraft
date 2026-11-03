@@ -1,0 +1,144 @@
+// =============================================================================
+//  gfx_chamber_geometry.v  --  Shape of the glassware on each screen
+// -----------------------------------------------------------------------------
+//  OWNER: PERSON 1  (Materials, Graphics & Controls)
+//
+//  The funnels, walls and floors are NOT pictures painted on top. They are
+//  real solid obstacles: the physics engine asks this module "is (x, y)
+//  a wall?" for every neighbour it looks at, so sand really slides down the
+//  funnel slope and water really pools against the glass. The renderer asks
+//  the same question so what you see matches what the physics feels.
+//
+//  Because walls are computed (not stored in RAM), opening a valve is free:
+//  just stop reporting those pixels as wall and everything above falls out.
+//
+//  REAGENT CHAMBER (JB / JC)                 REACTION BEAKER (JA)
+//
+//   y  0-15   name card                       y 0-8    header text
+//   y 16-23   description                     y 10-19  two funnels  \  / \  /
+//   y 25-34   funnel  \        /              y 20-23  two necks     ||   ||
+//   y 35-38   neck        ||                  y 25-91  beaker body |        |
+//   y 40-63   body   |          |             y 92-93  floor (drops open
+//   y 64-87   hopper  \        /                       when draining)
+//   y 86-87   valve       ==                  y 94-95  drain spout
+//   y 88-95   spout       ||
+//
+//  The hopper's 45-degree slopes matter: sand only slides down a slope at
+//  least that steep, so a sloped bottom guarantees a chamber always drains
+//  completely through the small valve.
+//
+//  part codes (for the renderer to choose a colour):
+//    0 none   1 glass wall   2 funnel   3 floor / hopper   4 valve (closed)
+//    5 spout  6 drain floor (beaker)    7 rim highlight
+// =============================================================================
+`default_nettype none
+
+module gfx_chamber_geometry #(
+    parameter CHAMBER = 0                // 0 = reagent chamber, 1 = reaction beaker
+)(
+    input  wire [6:0] x,                 // 0..63
+    input  wire [6:0] y,                 // 0..95
+    input  wire       valve_open,        // reagent: bottom valve open (release)
+    input  wire       trapdoor_open,     // reagent: hopper drops away (discard)
+    input  wire       drain_open,        // beaker: floor drops away (drain)
+    output reg        is_wall,
+    output reg  [2:0] part,
+    output reg        interior           // inside the glass (for background tint)
+);
+
+    // Mirror x for the right-hand side so we only describe the left side once
+    wire [6:0] xm = 7'd63 - x;
+
+    // =====================================================================
+    //  Reagent chamber
+    // =====================================================================
+    // Funnel: the left wall's inner edge moves 2 px right per row,
+    // from x=9 at y=25 to x=27 at y=34. 3 px thick.
+    wire [7:0] r_fun_edge = 8'd9 + ({1'b0, y} - 8'd25) * 8'd2;
+    wire r_fun_rows = (y >= 7'd25) && (y <= 7'd34);
+    wire r_funnel   = r_fun_rows &&
+                      ((({1'b0, x}  + 8'd2 >= r_fun_edge) && ({1'b0, x}  <= r_fun_edge)) ||
+                       (({1'b0, xm} + 8'd2 >= r_fun_edge) && ({1'b0, xm} <= r_fun_edge)));
+
+    wire r_neck = (y >= 7'd35) && (y <= 7'd38) &&
+                  (((x >= 7'd25) && (x <= 7'd27)) || ((xm >= 7'd25) && (xm <= 7'd27)));
+
+    // Straight sides of the body
+    wire r_side = (y >= 7'd40) && (y <= 7'd63) &&
+                  (((x >= 7'd3) && (x <= 7'd5)) || ((xm >= 7'd3) && (xm <= 7'd5)));
+
+    // Hopper: inner edge moves 1 px right per row (45 degrees), from x=6 at
+    // y=64 down to x=27 at y=85, then stays at 27 so it meets the valve.
+    wire [6:0] r_hop_edge = (y >= 7'd85) ? 7'd27 : (7'd6 + (y - 7'd64));
+    wire r_hop_rows = (y >= 7'd64) && (y <= 7'd87);
+    wire r_hopper   = r_hop_rows &&
+                      (((x  + 7'd2 >= r_hop_edge) && (x  <= r_hop_edge)) ||
+                       ((xm + 7'd2 >= r_hop_edge) && (xm <= r_hop_edge)));
+
+    wire r_valve = ((y == 7'd86) || (y == 7'd87)) && (x >= 7'd28) && (x <= 7'd35);
+    wire r_spout = (y >= 7'd88) &&
+                   (((x >= 7'd26) && (x <= 7'd27)) || ((xm >= 7'd26) && (xm <= 7'd27)));
+
+    wire r_interior = ((y >= 7'd40) && (y <= 7'd63) && (x >= 7'd6) && (x <= 7'd57)) ||
+                      (r_hop_rows && (x > r_hop_edge) && (xm > r_hop_edge));
+
+    // =====================================================================
+    //  Reaction beaker
+    // =====================================================================
+    // Two funnels. Left funnel walls run diagonally 1 px per row:
+    //   outer wall: x = 3 + (y-10)          (going right as it goes down)
+    //   inner wall: x = 28 - (y-10)         (going left)
+    // leaving a 6 px neck (x 13..18) at y = 19. Right funnel = mirror image.
+    wire [6:0] b_dy    = y - 7'd10;
+    wire b_fun_rows    = (y >= 7'd10) && (y <= 7'd19);
+    wire [6:0] b_outer = 7'd3  + b_dy;
+    wire [6:0] b_inner = 7'd28 - b_dy;
+    wire b_funnel_l = b_fun_rows &&
+                      (((x + 7'd1 >= b_outer) && (x <= b_outer)) ||
+                       ((x >= b_inner) && (x <= b_inner + 7'd1)));
+    wire b_funnel_r = b_fun_rows &&
+                      (((xm + 7'd1 >= b_outer) && (xm <= b_outer)) ||
+                       ((xm >= b_inner) && (xm <= b_inner + 7'd1)));
+
+    wire b_neck = (y >= 7'd20) && (y <= 7'd23) &&
+                  (((x  >= 7'd11) && (x  <= 7'd12)) || ((x  >= 7'd19) && (x  <= 7'd20)) ||
+                   ((xm >= 7'd11) && (xm <= 7'd12)) || ((xm >= 7'd19) && (xm <= 7'd20)));
+
+    wire b_side  = (y >= 7'd25) && (y <= 7'd93) &&
+                   (((x >= 7'd2) && (x <= 7'd3)) || ((xm >= 7'd2) && (xm <= 7'd3)));
+    wire b_rim   = (y == 7'd25) &&
+                   (((x >= 7'd1) && (x <= 7'd4)) || ((xm >= 7'd1) && (xm <= 7'd4)));
+    wire b_floor = ((y == 7'd92) || (y == 7'd93)) && (x >= 7'd4) && (x <= 7'd59);
+    wire b_spout = (y >= 7'd94) &&
+                   (((x >= 7'd26) && (x <= 7'd27)) || ((xm >= 7'd26) && (xm <= 7'd27)));
+
+    wire b_interior = (x >= 7'd4) && (x <= 7'd59) && (y >= 7'd26) && (y <= 7'd91);
+
+    // =====================================================================
+    //  Final answer
+    // =====================================================================
+    always @* begin
+        is_wall  = 1'b0;
+        part     = 3'd0;
+        interior = 1'b0;
+        if (CHAMBER == 0) begin
+            interior = r_interior;
+            if      (r_funnel || r_neck)                 begin is_wall = 1'b1; part = 3'd2; end
+            else if (r_side)                             begin is_wall = 1'b1; part = 3'd1; end
+            else if (r_spout)                            begin is_wall = 1'b1; part = 3'd5; end
+            else if (r_hopper && !trapdoor_open)         begin is_wall = 1'b1; part = 3'd3; end
+            else if (r_valve && !valve_open && !trapdoor_open)
+                                                         begin is_wall = 1'b1; part = 3'd4; end
+        end else begin
+            interior = b_interior;
+            if      (b_funnel_l || b_funnel_r || b_neck) begin is_wall = 1'b1; part = 3'd2; end
+            else if (b_rim)                              begin is_wall = 1'b1; part = 3'd7; end
+            else if (b_side)                             begin is_wall = 1'b1; part = 3'd1; end
+            else if (b_floor && !drain_open)             begin is_wall = 1'b1; part = 3'd6; end
+            else if (b_spout)                            begin is_wall = 1'b1; part = 3'd5; end
+        end
+    end
+
+endmodule
+
+`default_nettype wire
