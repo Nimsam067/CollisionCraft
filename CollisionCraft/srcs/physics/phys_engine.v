@@ -440,26 +440,27 @@ module phys_engine #(
                     end
                 end
 
-                // DECIDE: self change > reaction > movement > life tick
+                // Decide self change > reaction > movement > life tick
                 S_DECIDE: begin
                     wa_en <= 1'b0;
                     wb_en <= 1'b0;
                     wa_addr <= {sy, sx};
 
                     if (s_trans) begin
-                        // (a) burnt out / condensed / cooled into something else
+                        // burnt out / condensed / cooled into something else
                         wa_en <= 1'b1;
                         wa_data <= make_cell(c_tag, cur_par, c_shade, s_life, s_mat);
                     end
                     else if (r_fire) begin
-                        // (b) reaction: both cells change. Products take the OLDER tag.
+                        // reaction, both cells change. Products take the OLDER tag,
+                        // but a cell that stays the same material keeps its own tag
                         wa_en <= 1'b1;
-                        wa_data <= make_cell((c_tag < n_tag) ? c_tag : n_tag, cur_par, c_shade,
+                        wa_data <= make_cell((r_oc == c_mat) ? c_tag : ((c_tag < n_tag) ? c_tag : n_tag), cur_par, c_shade,
                                              r_oc_life_en ? r_oc_life : (r_oc == c_mat ? s_life : oc_init),
                                              r_oc);
                         wb_en <= 1'b1;
                         wb_addr <= slot_addr(rx_slot, sx, sy);
-                        wb_data <= make_cell((c_tag < n_tag) ? c_tag : n_tag, cur_par, n_shade,
+                        wb_data <= make_cell((r_on == n_mat) ? n_tag : ((c_tag < n_tag) ? c_tag : n_tag), cur_par, n_shade,
                                              r_on_life_en ? r_on_life : (r_on == n_mat ? n_life : on_init),
                                              r_on);
                         rxn_valid <= 1'b1;
@@ -467,7 +468,7 @@ module phys_engine #(
                         rxn_fx <= r_fx;
                     end
                     else if (mv_slot != 4'd0) begin
-                        // (c) movement: swap with the target
+                        // movement, swap with the target
                         if (t_cell[`C_MAT] == `M_SINK) begin
                             // fell out of the bottom of the screen
                             wa_en <= 1'b1;
@@ -485,7 +486,7 @@ module phys_engine #(
                         end
                     end
                     else if (s_life != c_life) begin
-                        // (d) just ticking its LIFE timer down
+                        // just ticking its LIFE timer down
                         wa_en <= 1'b1;
                         wa_data <= {c_tag, cur_par, c_shade, s_life, c_mat};
                     end
@@ -500,7 +501,7 @@ module phys_engine #(
                     wa_en <= 1'b0;
                     wb_en <= 1'b0;
                     if (sy == 7'd96) begin
-                        // just finished injecting: start the sweep at the bottom row
+                        // just finished injecting, start the sweep at the bottom row
                         sy <= 7'd95;
                         sx <= dir ? 6'd63 : 6'd0;
                         state <= S_C_ISSUE;

@@ -2,7 +2,7 @@
 // a grain's LIFE timer runs out, steam can condense back into water, fire turns
 // into smoke, gases fade away, molten metal sets into an ingot and so on. When
 // flush is on (draining or discarding), gases and fire disappear straight away.
-//
+
 // Owner: Arnav (Interactions & Game Logic)
 
 `include "cc_defines.vh"
@@ -21,13 +21,13 @@ module rxn_self (
     mat_properties p (.mat(mat), .cls(cls), .dens(), .flow(), .init_life(), .decay(decay),
                       .flammable(), .glows());
 
-    // Starting LIFE for whatever we turn into
+    // Starting LIFE for product
     reg [5:0] product;
     wire [3:0] product_life;
     mat_properties pp (.mat(product), .cls(), .dens(), .flow(), .init_life(product_life),
                        .decay(), .flammable(), .glows());
 
-    // Does the timer tick this step?   decay 1 = always ... 7 = 1 in 64
+    // Timer tick
     reg tick;
     always @* begin
         case (decay)
@@ -42,7 +42,7 @@ module rxn_self (
         endcase
     end
 
-    // What does each material become when its timer runs out?
+    // Material transformation
     always @* begin
         case (mat)
             `M_STEAM: product = rnd[6] ? `M_WATER : `M_EMPTY;
@@ -64,7 +64,7 @@ module rxn_self (
         new_life = life;
 
         if (flush && (cls == `CL_GAS || cls == `CL_FIRE || cls == `CL_BLAST)) begin
-            // draining: gases and flames disappear immediately
+            // draining
             transform = 1'b1;
             new_mat = `M_EMPTY;
             new_life = 4'd0;

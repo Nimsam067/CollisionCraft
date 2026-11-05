@@ -1,7 +1,7 @@
 // Banner name and two hint lines for every reaction. The hints are used by the
 // HINT button in free play. Every string is 10 characters padded with spaces,
 // with at most 9 visible letters so it fits inside the banner.
-//
+
 // Owner: Arnav (Interactions & Game Logic)
 
 `include "cc_defines.vh"
@@ -15,7 +15,6 @@ module rxn_names (
 
     always @* begin
         case (id)
-            //               banner              hint line 1         hint line 2
             `RX_OBSIDIAN: begin name = "OBSIDIAN! "; hint0 = "WATER 1ST "; hint1 = "LAVA 2ND  "; end
             `RX_PUMICE: begin name = "PUMICE!   "; hint0 = "LAVA 1ST  "; hint1 = "WATER 2ND "; end
             `RX_STONE: begin name = "STONE     "; hint0 = "MIX WATER "; hint1 = "AND LAVA  "; end

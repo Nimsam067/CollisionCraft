@@ -1,8 +1,8 @@
-// Data for the 10 challenge levels: which material to make, how many grains of
+// Data for the 10 challenge levels - which material to make, how many grains of
 // it are needed (goal), the par number of releases for 3 stars, and two lines of
 // hint text. To add a level, add a case here and bump LEVEL_COUNT in
 // game_challenge.v.
-//
+
 // Owner: Arnav (Interactions & Game Logic)
 
 `include "cc_defines.vh"
@@ -18,7 +18,6 @@ module game_levels (
 
     always @* begin
         case (level)
-            //                    target          goal     par     hint line 1     hint line 2
             4'd0: begin target_mat=`M_STEAM; goal=13'd40; par=3'd1; hint0="WATER AND "; hint1="LAVA      "; end
             4'd1: begin target_mat=`M_GLASS; goal=13'd80; par=3'd2; hint0="SAND 1ST  "; hint1="LAVA 2ND  "; end
             4'd2: begin target_mat=`M_OBSIDIAN; goal=13'd80; par=3'd2; hint0="WATER 1ST "; hint1="LAVA 2ND  "; end

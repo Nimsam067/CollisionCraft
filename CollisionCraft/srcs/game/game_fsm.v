@@ -3,7 +3,7 @@
 // decides when a release or drain is actually allowed, shows the recipe line
 // after a release, and runs the demo behind the title screen. While paused, the
 // physics and the challenge timer are frozen.
-//
+
 // Owner: Arnav (Interactions & Game Logic)
 
 `include "cc_defines.vh"
@@ -12,7 +12,7 @@ module game_fsm (
     input wire clk,
     input wire rst,
     input wire anim_tick,
-    // buttons by job (clean one cycle pulses)
+    // buttons
     input wire btn_ok, btn_up, btn_down, btn_menu, btn_hint,
     // lab status
     input wire [2:0] jb_state, jc_state,
@@ -48,8 +48,8 @@ module game_fsm (
     output reg [15:0] header_col,
     output wire msg_show,
     output wire [79:0] msg0, msg1, msg2, msg3,
-    output wire pad_show, // tutorial: draw the five button picture
-    output wire [2:0] pad_hi, // tutorial: which button blinks
+    output wire pad_show, // tutorial five button picture
+    output wire [2:0] pad_hi, // tutorial which button blinks
     // 7 segment and LEDs
     output wire [4:0] sg3, sg2, sg1, sg0,
     output wire [3:0] dp,
@@ -70,9 +70,9 @@ module game_fsm (
     // Mode switching, pause popup and slow motion
     reg enter_tut, enter_free, enter_chal, restart_chal, sys_clear;
     reg [7:0] menu_tip; // frames left of the "< = MENU" reminder after entering a mode
-    reg [7:0] fblink; // free running frame counter for blinking text
+    reg [7:0] fblink; // frame counter for blinking text
     wire t_exit, f_exit, c_exit;
-    wire t_tour; // tutorial button tour: MENU and UP are being taught, don't act on them
+    wire t_tour; // tutorial button tour, MENU and UP are being taught, don't act on them
     wire tour_lock = is_t & t_tour;
 
     always @(posedge clk) begin
@@ -129,8 +129,8 @@ module game_fsm (
                         else if (btn_ok) begin
                             paused <= 1'b0;
                             case (pause_sel)
-                                2'd0: ; // RESUME
-                                2'd1: begin // RESTART
+                                2'd0: ; // resume
+                                2'd1: begin // restart
                                     slow_mo <= 1'b0;
                                     sys_clear <= 1'b1;
                                     menu_tip <= 8'd200;
@@ -138,7 +138,7 @@ module game_fsm (
                                     else if (is_f) begin enter_free <= 1'b1; clear_disc <= 1'b1; end
                                     else restart_chal <= 1'b1;
                                 end
-                                default: begin // QUIT
+                                default: begin // quit
                                     slow_mo <= 1'b0;
                                     mode <= `MODE_TITLE;
                                     sys_clear <= 1'b1;
@@ -234,12 +234,12 @@ module game_fsm (
     assign target_mat = is_c ? c_tgt : `M_EMPTY;
     assign clear_lab = sys_clear | (is_t & t_clr) | (is_f & f_clr) | (is_c & c_clr);
 
-    // Release / drain: only when physically possible
+    // Release / drain only when physically possible
     wire any_ready = (jb_state == `CH_READY) || (jc_state == `CH_READY);
     assign release_cmd = want_release && any_ready && !lab_busy && !ja_draining && !paused;
     assign drain_cmd = want_drain && !ja_draining && !lab_busy && (ja_count != 13'd0) && !paused;
 
-    // Recipe line: "WAT + LAV" (together) or "WAT > LAV" (layered)
+    // Recipe line
     wire [23:0] code_b, code_c;
     mat_names nb (.mat(jb_mat), .name(), .code3(code_b), .desc(), .sig_color());
     mat_names nc (.mat(jc_mat), .name(), .code3(code_c), .desc(), .sig_color());
@@ -275,8 +275,7 @@ module game_fsm (
     wire [79:0] mode_hdr = is_t ? t_hdr : is_f ? f_hdr : c_hdr;
     wire [15:0] mode_hcol = is_t ? t_hcol : is_f ? f_hcol : c_hcol;
 
-    // Header priority (lowest first, later lines win):
-    //   mode's own header < slow motion blink < "< = MENU" reminder < recipe line < pause help
+    // Header priority
     always @* begin
         header_str = mode_hdr;
         header_col = mode_hcol;
@@ -306,14 +305,14 @@ module game_fsm (
     assign pad_show = is_t && t_pad && !paused;
     assign pad_hi = t_padhi;
 
-    // 7 segment: "PLAY" on the title, "PAUS" while paused, else the mode's own
+    // 7 segment, "PLAY" on the title, "PAUS" while paused, else the mode's own
     assign sg3 = title ? `SG_P : paused ? `SG_P : is_t ? t_s3 : is_f ? f_s3 : c_s3;
     assign sg2 = title ? `SG_L : paused ? `SG_A : is_t ? t_s2 : is_f ? f_s2 : c_s2;
     assign sg1 = title ? `SG_A : paused ? `SG_U : is_t ? t_s1 : is_f ? f_s1 : c_s1;
     assign sg0 = title ? `SG_Y : paused ? `SG_S : is_t ? t_s0 : is_f ? f_s0 : c_s0;
     assign dp = (title || paused) ? 4'b0000 : is_t ? t_dp : is_f ? f_dp : c_dp;
 
-    // Title LEDs: a "scanner" sweeping across all 16
+    // Title LEDs, a "scanner" sweeping across all 16
     reg [3:0] scan_pos;
     reg scan_dir;
     reg [1:0] scan_div;
@@ -334,7 +333,7 @@ module game_fsm (
         leds_override <= 16'd1 << scan_pos;
     end
 
-    // Title demo: both chambers pour forever into the beaker, cycling materials
+    // Title demo, both chambers pour forever into the beaker, cycling materials
     reg [7:0] demo_frames;
     reg [2:0] demo_idx;
     reg trickle;

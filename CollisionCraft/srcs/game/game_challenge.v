@@ -3,7 +3,7 @@
 // many releases you used compared to the level's par. HINT shows a hint but
 // costs 10 seconds. Restarting from the pause menu takes you back to the start
 // of the current level, not level 1.
-//
+
 // Owner: Arnav (Interactions & Game Logic)
 
 `include "cc_defines.vh"
@@ -12,14 +12,14 @@ module game_challenge (
     input wire clk,
     input wire rst,
     input wire anim_tick,
-    input wire enter, // pulse: start the challenge from level 1
-    input wire restart, // pulse: restart the current level
-    // buttons, by their job
+    input wire enter, // start the challenge from level 1
+    input wire restart, // restart the current level
+    // buttons
     input wire btn_ok, btn_down, btn_hint,
     // lab status
     input wire released,
     input wire [12:0] target_count, // grains of the target material in the beaker
-    // requests to the game director
+    // requests
     output reg want_release,
     output reg want_drain,
     output reg clear_lab,
@@ -80,7 +80,7 @@ module game_challenge (
             blink <= 8'd0;
             clear_lab <= enter;
         end else if (restart) begin
-            // pause menu RESTART: back to this level's intro with a clean lab
+            // pause menu RESTART, back to this level's intro 
             phase <= C_INTRO;
             hint_timer <= 8'd0;
             clear_lab <= 1'b1;
@@ -158,7 +158,7 @@ module game_challenge (
     end
 
     // Display
-    wire [4:0] lvl_disp = (level == 4'd9) ? `SG_A : {1'b0, level + 4'd1}; // 1..9, then A
+    wire [4:0] lvl_disp = (level == 4'd9) ? `SG_A : {1'b0, level + 4'd1}; 
     wire [7:0] lvl_ascii_t = (level == 4'd9) ? "1" : " ";
     wire [7:0] lvl_ascii_o = (level == 4'd9) ? "0" : (8'd49 + {4'd0, level});
     wire [3:0] secs_t = secs / 7'd10, secs_o = secs % 7'd10;
@@ -208,7 +208,7 @@ module game_challenge (
                 msg0 = "TIME UP!  "; msg1 = "SO CLOSE! "; msg2 = "          "; msg3 = "C = RETRY ";
                 sg3 = `SG_F; sg2 = `SG_A; sg1 = `SG_I; sg0 = `SG_L;
             end
-            default: begin // C_DONE
+            default: begin // Done
                 header_str = "ALL DONE! ";
                 header_col = {5'd31, 6'd52, 5'd4};
                 msg0 = "ALL DONE! "; msg1 = "MASTER    "; msg2 = "CRAFTER!  "; msg3 = "C = TITLE ";

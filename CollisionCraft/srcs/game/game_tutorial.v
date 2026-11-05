@@ -2,10 +2,7 @@
 // through the lab (picking, discarding, filling, releasing, draining and making
 // obsidian). Each step waits until the player does the action, and HINT skips a
 // step.
-//
-// pad_hi picks which button blinks in the button picture (shared with
-// gfx_reaction_screen.v): 0 none, 1 OK, 2 UP, 3 DOWN, 4 MENU, 5 HINT.
-//
+
 // Owner: Arnav (Interactions & Game Logic)
 
 `include "cc_defines.vh"
@@ -14,17 +11,17 @@ module game_tutorial (
     input wire clk,
     input wire rst,
     input wire anim_tick,
-    input wire enter, // pulse: start (or restart) the tutorial
-    // buttons, by their job
+    input wire enter, // start (or restart) the tutorial
+    // buttons
     input wire btn_ok, btn_up, btn_down, btn_menu, btn_hint,
-    // lab status
+    // status
     input wire [2:0] jb_state, jc_state,
     input wire lab_busy, ja_draining,
     input wire [12:0] ja_count,
     input wire released,
     input wire rxn_seen,
     input wire [5:0] rxn_seen_id,
-    // requests to the game director
+    // requests
     output reg want_release,
     output reg want_drain,
     output reg clear_lab,
@@ -32,13 +29,13 @@ module game_tutorial (
     output wire allow_pour,
     output reg [5:0] hint_jb,
     output reg [5:0] hint_jc,
-    output wire tour, // button tour running: MENU/UP keep their tour meaning
+    output wire tour, // button tour running
     // what to show on JA
     output reg [79:0] header_str,
     output reg [15:0] header_col,
     output reg msg_show,
     output reg [79:0] msg0, msg1, msg2, msg3,
-    output wire pad_show, // draw the five button picture
+    output wire pad_show, // five button picture
     output reg [2:0] pad_hi, // which button in the picture blinks
     // 7 segment
     output wire [4:0] sg3, sg2, sg1, sg0,
@@ -55,16 +52,16 @@ module game_tutorial (
 
     reg [3:0] step;
     reg [9:0] timer; // frames spent in this step
-    reg saw_discard; // T_DISCARD: the trapdoor really opened
-    reg saw_drain; // T_DRAIN:   the drain really opened
-    reg box_hidden; // T_RECIPE:  hide instructions after the first release
+    reg saw_discard; // the trapdoor really opened
+    reg saw_drain; // the drain really opened
+    reg box_hidden; // hide instructions after the first release
     reg [7:0] blink;
 
     assign allow_pour = (step >= T_PICK) && (step != T_DONE);
     assign tour = (step >= T_PAD) && (step <= T_K_HINT);
     assign pad_show = tour;
 
-    // 7 segment: "t 07" = tutorial step 7
+    // 7 segment
     wire [3:0] step_t = (step >= 4'd10) ? 4'd1 : 4'd0;
     wire [3:0] step_o = (step >= 4'd10) ? step - 4'd10 : step;
     assign sg3 = `SG_T;
@@ -106,21 +103,20 @@ module game_tutorial (
                 if (timer != 10'd1023) timer <= timer + 10'd1;
             end
 
-            // HINT = skip to the next step (also how the HINT tour page is passed)
+            // skip to the next step
             if (btn_hint && step != T_DONE) begin
                 go_next;
             end else begin
                 case (step)
-                    // part 1: the buttons
+                    // the buttons
                     T_WELCOME: if (btn_ok) go_next;
                     T_PAD: if (btn_ok) go_next;
                     T_K_OK: if (btn_ok) go_next;
                     T_K_UP: if (btn_up) go_next;
                     T_K_DOWN: if (btn_down) go_next;
                     T_K_MENU: if (btn_menu) go_next;
-                    // T_K_HINT is passed by the HINT press above
 
-                    // part 2: the lab
+                    // the lab
                     T_PICK: if (jb_ready || jc_ready) go_next;
 
                     T_DISCARD: begin
@@ -177,7 +173,7 @@ module game_tutorial (
         hint_jc = 6'd0;
         pad_hi = PAD_NONE;
 
-        // on the button pages the header says "PRESS IT!" in a blink
+        // Instructions
         if (step >= T_K_OK && step <= T_K_HINT) begin
             header_str = "PRESS IT! ";
             header_col = blink[4] ? C_WHITE : C_GOLD;
@@ -228,7 +224,7 @@ module game_tutorial (
                 msg0 = "STEP 4/7  "; msg1 = "PRESS OK  "; msg2 = "TO POUR   "; msg3 = "INTO JA   ";
             end
             T_WATCH: begin
-                // no box in the way; remind them about slow motion
+                // no box in the way, slow motion
                 msg_show = 1'b0;
                 header_str = blink[6] ? "^ = SLOWMO" : "WATCH IT! ";
                 header_col = blink[6] ? {5'd6, 6'd52, 5'd31} : C_GOLD;

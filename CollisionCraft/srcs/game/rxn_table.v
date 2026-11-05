@@ -1,14 +1,14 @@
-// The reaction rules. The physics engine gives us two touching grains, C and N,
+// The reaction rules. The physics engine gives two touching grains (C and N)
 // and this works out whether they react and what they turn into.
-//
-// Order matters: each grain in the beaker has a tag saying which release it came
+
+// Order matters, each grain in the beaker has a tag saying which release it came
 // in with, so we can tell if A was there first, B was there first, or they came
 // in together. For example water then lava gives obsidian, lava then water gives
 // pumice, and both together give stone.
-//
+
 // A rule is written as rule(new_a, new_b, chance, reaction_id, effect), where
 // chance is out of 16 per step. Always put the lower material ID first.
-//
+
 // Owner: Arnav (Interactions & Game Logic)
 
 `include "cc_defines.vh"
@@ -21,11 +21,11 @@ module rxn_table (
     input wire [1:0] n_tag,
     input wire [3:0] n_life,
     output wire hit, // a rule exists for this pair
-    output reg [4:0] prob, // chance per step, out of 16 (16 = always)
+    output reg [4:0] prob, // chance per step
     output wire [5:0] out_c, // what C becomes
     output wire [5:0] out_n, // what N becomes
-    output reg [5:0] rxn_id, // which reaction (RX_*), 0 = silent
-    output reg [1:0] fx, // special effect (FX_*)
+    output reg [5:0] rxn_id, // which reaction
+    output reg [1:0] fx, // special effect 
     output wire oc_life_en, // override LIFE of C's product
     output wire [3:0] oc_life,
     output wire on_life_en, // override LIFE of N's product
@@ -45,18 +45,18 @@ module rxn_table (
     localparam [1:0] TOGETHER = 2'd0, A_FIRST = 2'd1, B_FIRST = 2'd2;
     wire [1:0] ctx = (ta == tb) ? TOGETHER : (ta < tb) ? A_FIRST : B_FIRST;
 
-    // Does b glow when hot (for the generic "hot + water = steam" rule)?
+    // Does b glow
     wire b_glows;
     mat_properties pb (.mat(b), .cls(), .dens(), .flow(), .init_life(), .decay(),
                        .flammable(), .glows(b_glows));
 
     // Results in sorted order
     reg found;
-    reg [5:0] ra, rb; // what a and b become
+    reg [5:0] ra, rb; 
     reg la_en, lb_en; // LIFE overrides
     reg [3:0] la_new, lb_new;
 
-    // The rule "function": fills in all the outputs at once
+    // Rule function
     task rule;
         input [5:0] new_a;
         input [5:0] new_b;
@@ -77,7 +77,7 @@ module rxn_table (
         found = 1'b0; ra = a; rb = b; prob = 5'd0; rxn_id = `RX_NONE; fx = `FX_NONE;
         la_en = 1'b0; lb_en = 1'b0; la_new = 4'd0; lb_new = 4'd0;
 
-        // WATER (1) + ...
+        // Water + 
         if (a == `M_WATER && b == `M_SAND) begin
             case (ctx)
                 A_FIRST: rule(`M_WATER, `M_WETSAND, 5'd3, `RX_RIVERBED, `FX_NONE); // sand settles under clear water
@@ -101,14 +101,14 @@ module rxn_table (
         else if (a == `M_WATER && b == `M_ACID) begin
             case (ctx)
                 A_FIRST: rule(`M_DILUTE, `M_DILUTE, 5'd6, `RX_DILUTED, `FX_NONE); // the safe way
-                B_FIRST: rule(`M_SPATTER, `M_SPATTER, 5'd8, `RX_SPLASH, `FX_FLASH); // never add water to acid!
+                B_FIRST: rule(`M_SPATTER, `M_SPATTER, 5'd8, `RX_SPLASH, `FX_FLASH); // the dangerous way
                 default: rule(`M_DILUTE, `M_STEAM, 5'd5, `RX_WARMMIX, `FX_NONE);
             endcase
         end
         else if (a == `M_WATER && b == `M_OIL) begin
             if (ctx == TOGETHER)
                 rule(`M_EMULSION, `M_EMULSION, 5'd2, `RX_EMULSION, `FX_NONE);
-            // otherwise: no reaction, they simply layer (oil floats)
+            // otherwise no reaction, they simply layer (oil floats)
         end
         else if (a == `M_WATER && b == `M_MOLTEN) begin
             rule(`M_STEAM, `M_INGOT, 5'd6, `RX_QUENCH, `FX_NONE);
@@ -120,7 +120,7 @@ module rxn_table (
             rule(`M_STEAM, `M_BLAST, 5'd8, `RX_NONE, `FX_NONE);
         end
 
-        // SAND (2) + ...
+        // SAND +
         else if (a == `M_SAND && b == `M_LAVA) begin
             case (ctx)
                 A_FIRST: rule(`M_GLASS, `M_LAVA, 5'd3, `RX_GLASS, `FX_NONE); // lava melts the sand bed
@@ -136,7 +136,7 @@ module rxn_table (
             endcase
         end
 
-        // LAVA (3) + ...
+        // LAVA +
         else if (a == `M_LAVA && b == `M_METAL) begin
             case (ctx)
                 A_FIRST: rule(`M_LAVA, `M_MOLTEN, 5'd4, `RX_SINKMELT, `FX_NONE); // metal sinks in and melts
@@ -171,7 +171,7 @@ module rxn_table (
             rule(`M_LAVA, `M_FIRE, 5'd4, `RX_BLAZE, `FX_NONE);
         end
 
-        // METAL (4) + ...
+        // Metal + 
         else if (a == `M_METAL && b == `M_ACID) begin
             case (ctx)
                 A_FIRST: rule(`M_HYDROGEN, `M_SOLUTION, 5'd2, `RX_FIZZ, `FX_NONE);
@@ -183,7 +183,7 @@ module rxn_table (
             rule(`M_COATED, `M_OIL, 5'd3, `RX_COATED, `FX_NONE);
         end
 
-        // ACID (5) + ...   (chain reactions with products)
+        // Acid +
         else if (a == `M_ACID && b == `M_STONE) begin
             rule(`M_DILUTE, `M_FUMES, 5'd1, `RX_ETCHED, `FX_NONE);
         end
@@ -191,7 +191,7 @@ module rxn_table (
             rule(`M_DILUTE, `M_SOLUTION, 5'd3, `RX_RUSTGONE, `FX_NONE);
         end
 
-        // OIL (6), FIRE (21), HYDROGEN (23), BLAST (30)
+        // Oil, Fire, Hydrogen, Blast
         else if (a == `M_OIL && b == `M_FIRE) begin
             rule(`M_FIRE, `M_FIRE, 5'd5, `RX_BLAZE, `FX_NONE);
         end
@@ -213,7 +213,6 @@ module rxn_table (
         else if (a == `M_TAR && b == `M_BLAST) begin
             rule(`M_FIRE, `M_BLAST, 5'd16, `RX_NONE, `FX_NONE);
         end
-        // Explosion front expands into empty space, getting weaker each ring
         else if (a == `M_EMPTY && b == `M_BLAST) begin
             if (lb > 4'd3) begin
                 rule(`M_BLAST, `M_BLAST, 5'd16, `RX_NONE, `FX_NONE);
@@ -221,8 +220,7 @@ module rxn_table (
             end
         end
 
-        // GENERIC: anything glowing hot + water = sizzle into steam
-        // (only if no specific rule above matched)
+        // Anything glowing hot + water = sizzle into steam
         if (!found && a == `M_WATER && b_glows && lb != 4'd0) begin
             rule(`M_STEAM, b, 5'd3, `RX_SIZZLE, `FX_NONE);
             lb_en = 1'b1;
