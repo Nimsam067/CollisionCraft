@@ -1,6 +1,5 @@
 // Makes the clocks and the power on reset. The 100 MHz board clock is divided
-// down to 25 MHz for the core logic and 6.25 MHz for the OLEDs. Both come from
-// the same counter and are declared in the XDC file so Vivado checks timing.
+// down to 25 MHz for the core logic and 6.25 MHz for the OLEDs. 
 //
 // Owner: shared
 
@@ -20,8 +19,6 @@ module clock_gen (
     assign clk_oled = div[3];
 
     // Power on reset
-    // The FPGA powers up with every register at its initial value. We hold
-    // reset for 65535 core cycles so every module starts from a known state.
     reg [15:0] por_count = 16'd0;
     initial rst_core = 1'b1;
 

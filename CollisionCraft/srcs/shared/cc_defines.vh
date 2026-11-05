@@ -1,13 +1,10 @@
-// Shared definitions used by all of us: grid size, cell layout, material IDs,
-// reaction IDs, states and tuning values. If you change something here, let the
-// others know.
-//
+// Shared definitions used by everyone: grid size, cell layout, material IDs,
+// reaction IDs, states and tuning values.
+
 // Zi Le: mat_*, gfx_*, ui_* (materials, graphics and controls)
 // Aadi: phys_* (physics engine)
 // Arnav: rxn_*, game_* (reactions and game modes)
-//
-// Add this file to the Vivado project as a Verilog Header so `include can find it.
-//
+
 // Owner: shared
 
 `ifndef CC_DEFINES_VH
@@ -15,8 +12,6 @@
 
 // Simulation grid
 // Every OLED is used in PORTRAIT orientation: 64 pixels wide, 96 pixels tall.
-// One pixel = one "cell" of the falling sand simulation.
-// Address of cell (x, y) = y * 64 + x   (which is just {y, x} in binary)
 `define GRID_W        64
 `define GRID_H        96
 `define GRID_CELLS    6144
@@ -29,7 +24,7 @@
 //   MATERIAL : which material lives in this cell (see M_* below)
 //   LIFE     : 4 bit timer. Fire burns down, steam condenses, hot stone cools.
 //   SHADE    : random 0..7 chosen when the grain is born, so a pile of sand
-//              is speckled instead of one flat colour.
+//              is textured instead of one flat colour.
 //   PAR      : "parity" flag used by the physics engine so a grain that has
 //              already moved this step is not moved twice.
 //   TAG      : order tag for the reaction beaker (JA). 2 = arrived in the
@@ -84,8 +79,8 @@
 `define M_SPATTER    6'd31   // acid droplets flung by "water onto acid"
 `define M_WETSAND    6'd32   // riverbed sand
 `define M_BEADS      6'd33   // glass beads
-// special pseudo materials, never stored in RAM
-`define M_SINK       6'd62   // "the floor is open here, fall out of the screen"
+// special materials, never stored in RAM
+`define M_SINK       6'd62   // the floor is open here, fall out of the screen
 `define M_WALL       6'd63   // chamber glass / funnel / floor
 
 // Material classes (how a material MOVES)
@@ -118,7 +113,6 @@
 `define SINK_DELETE  2'd2    // grains are thrown away (discard / drain)
 
 // Reaction IDs (used for banners, discoveries and challenge checks)
-// 0 means "something changed but don't announce it".
 `define RX_NONE        6'd0
 `define RX_OBSIDIAN    6'd1   // water first, then lava
 `define RX_PUMICE      6'd2   // lava first, then water
@@ -128,7 +122,7 @@
 `define RX_CLAY        6'd6   // water + sand together
 `define RX_RUST        6'd7   // water and metal
 `define RX_DILUTED     6'd8   // water first, then acid (the safe way)
-`define RX_SPLASH      6'd9   // acid first, then water (the WRONG way)
+`define RX_SPLASH      6'd9   // acid first, then water (the dangerous way)
 `define RX_WARMMIX     6'd10  // water + acid together
 `define RX_EMULSION    6'd11  // water + oil together
 `define RX_GLASS       6'd12  // sand first, then lava
@@ -202,7 +196,7 @@
 `define SG_BLANK 5'd28
 `define SG_G     5'd29
 
-// Tuning knobs
+// Base commands
 `define CORE_HZ        25000000   // core logic clock (see clock_gen.v)
 `define STEP_DIV_FAST  208333     // 25 MHz / 120 = 120 physics steps per second
 `define STEP_DIV_SLOW  833333     // 30 steps per second (slow motion switch)

@@ -1,6 +1,6 @@
 // 32 bit LFSR random number generator. Gives a new pseudo random value every
 // clock. Each screen uses a different SEED so they don't behave the same.
-//
+
 // Owner: Aadi (Physics Engine)
 
 module phys_lfsr #(

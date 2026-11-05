@@ -48,8 +48,7 @@ module CollisionCraft_Top (
     end
 
     // Buttons  (Zi Le)
-    // Maps each physical board button to a job. This is the ONLY place that knows which
-    // physical button is which; everything else uses the job names.
+    // Maps each physical board button to a job. Everywhere else we can use job names.
     wire ok_press, up_press, down_press, menu_press, hint_press;
     ui_debounce db_ok   (.clk(clk_core), .rst(rst), .btn_raw(btnC), .level(), .press(ok_press),   .hold());
     ui_debounce db_up   (.clk(clk_core), .rst(rst), .btn_raw(btnR), .level(), .press(up_press),   .hold());
@@ -58,7 +57,6 @@ module CollisionCraft_Top (
     ui_debounce db_hint (.clk(clk_core), .rst(rst), .btn_raw(btnD), .level(), .press(hint_press), .hold());
 
     // Signals shared between the sections
-    // game director outputs
     wire [1:0]  mode, menu_sel, pause_sel;
     wire        paused, slow_mo, pad_show;
     wire [2:0]  pad_hi;
@@ -80,7 +78,7 @@ module CollisionCraft_Top (
     // the lab is held in reset on the title screen and when a mode wipes it
     wire lab_reset = rst | clear_lab | title;
 
-    // physics step heartbeat (slow motion comes from the UP button via game_fsm)
+    // physics step heartbeat (slow motion comes from the UP button)
     wire step_raw;
     wire jb_busy, jc_busy, ja_busy;
     phys_step_timer stepper (.clk(clk_core), .rst(rst), .slow(slow_mo),
@@ -338,13 +336,9 @@ module CollisionCraft_Top (
     );
 
     // SINGLE OLED TEST MODE
-    // Only one OLED? Plug it into ANY of JA / JB / JC and pick what it shows with sw8, sw7:
-    //     sw8 sw7 = 0 0 : normal (each header shows its own screen)
-    //               0 1 : every header shows JB (left chamber)
-    //               1 0 : every header shows JC (right chamber)
-    //               1 1 : every header shows JA (reaction beaker)
-    // This works because all three OLED drivers share one clock and start together, so
-    // they always ask for the same pixel at the same moment.
+    // Only one OLED: Plug it into ANY of JA / JB / JC and pick what it shows with sw8, sw7
+    // Helps work independently
+
     wire [1:0]  view_sel = {sw[8], sw[7]};
     wire [15:0] view_pd  = (view_sel == 2'd1) ? jb_pd :
                            (view_sel == 2'd2) ? jc_pd : ja_pd;
@@ -352,8 +346,7 @@ module CollisionCraft_Top (
     wire [15:0] jc_out   = (view_sel == 2'd0) ? jc_pd : view_pd;
     wire [15:0] ja_out   = (view_sel == 2'd0) ? ja_pd : view_pd;
 
-    // The three OLED drivers (given module, unmodified)
-    // Pmod pin order: 0 cs, 1 sdin, 2 (unused), 3 sclk, 4 d_cn, 5 resn, 6 vccen, 7 pmoden
+    // The three OLED drivers 
     Oled_Display oled_jb (
         .clk(clk_oled), .reset(1'b0), .frame_begin(jb_fb), .sending_pixels(jb_sp),
         .sample_pixel(), .pixel_index(jb_pi), .pixel_data(jb_out),

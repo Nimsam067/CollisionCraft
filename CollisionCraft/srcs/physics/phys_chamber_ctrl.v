@@ -5,25 +5,25 @@
 // POUR, HOLD or READY goes to DISCARD, which opens the trapdoor. HOLD is when two
 // switches are up and pouring is paused. A state counts as drained once the
 // engine has seen zero grains for two steps in a row.
-//
+
 // Owner: Aadi (Physics Engine)
 
 `include "cc_defines.vh"
 
 module phys_chamber_ctrl (
     input  wire        clk,
-    input  wire        rst,               // also used to reset the lab
+    input  wire        rst,               
     input  wire        step_done,         // engine finished a step
     input  wire [12:0] cell_count,        // grains in the chamber
     input  wire [1:0]  sel_state,         // from mat_switch_select
     input  wire [5:0]  sel_mat,
-    input  wire        allow_pour,        // game says pouring is allowed
-    input  wire        release_cmd,       // pulse: release if READY
-    input  wire        emit_done,         // emitter finished the volume
+    input  wire        allow_pour,        // pouring is allowed
+    input  wire        release_cmd,       
+    input  wire        emit_done,         
     output reg  [2:0]  state,
     output reg  [5:0]  cur_mat,
-    output reg         emit_start,        // pulse
-    output reg         emit_stop,         // pulse
+    output reg         emit_start,        
+    output reg         emit_stop,         
     output wire        emit_pause,
     output wire        valve_open,
     output wire        trapdoor_open,
@@ -39,13 +39,13 @@ module phys_chamber_ctrl (
                            (state == `CH_DISCARD) ? `SINK_DELETE : `SINK_CLOSED;
     assign flush         = (state == `CH_DISCARD);
 
-    // "Is the chamber empty yet?"
+    // Is the chamber empty?
     reg [1:0] zero_steps;     // consecutive steps with no grains
-    reg [5:0] steps_in_state; // for minimum animation time
+    reg [5:0] steps_in_state; 
     reg       was_ready;      // remember if the pour had finished before HOLD
     wire      drained = (zero_steps == 2'd2) && (steps_in_state >= 6'd30);
 
-    // Is the selection still "the same single switch"?
+    // Is the selection still the same switch?
     wire same_pick  = (sel_state == `SEL_ONE) && (sel_mat == cur_mat);
     wire lost_pick  = (sel_state == `SEL_NONE) || ((sel_state == `SEL_ONE) && (sel_mat != cur_mat));
 
@@ -64,7 +64,6 @@ module phys_chamber_ctrl (
             was_ready      <= 1'b0;
             emit_stop      <= 1'b1;
         end else begin
-            // bookkeeping per physics step
             prev_state <= state;
             if (state != prev_state) begin
                 zero_steps     <= 2'd0;
@@ -77,7 +76,7 @@ module phys_chamber_ctrl (
                 if (steps_in_state != 6'd63) steps_in_state <= steps_in_state + 6'd1;
             end
 
-            // the state machine
+            // Different states
             case (state)
                 `CH_EMPTY: begin
                     if (allow_pour && sel_state == `SEL_ONE) begin

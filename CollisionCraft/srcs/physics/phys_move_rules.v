@@ -2,20 +2,18 @@
 // picks one neighbour to swap with, or stays put. Powders fall and slide
 // diagonally to form piles, liquids fall and spread sideways, gases rise and
 // drift, and fire flickers upwards. Heavier things sink through lighter ones.
-// When flush is on, solids fall like powder so everything empties out.
-//
 // Neighbour slots:
 //          UL(7)  U(6)  UR(8)
 //   L2(9)  L(4)   [C]   R(5)   R2(10)
 //          DL(2)  D(1)  DR(3)
-//
+
 // Owner: Aadi (Physics Engine)
 
 `include "cc_defines.vh"
 
 module phys_move_rules (
     input  wire [5:0]  c_mat,          // the grain we are moving
-    input  wire [59:0] nb_mat,         // neighbour k (1..10) at [6*(k-1) +: 6]
+    input  wire [59:0] nb_mat,         
     input  wire        flush,
     input  wire [7:0]  rnd,
     output reg  [3:0]  tgt             // 0 = stay, else the slot to swap with
@@ -38,7 +36,7 @@ module phys_move_rules (
     wire [3:0] flow   = c_solid_flush ? 4'd15      : c_flow;
 
     // Properties of all ten neighbours
-    wire [29:0] n_cls;     // neighbour k class at [3*(k-1) +: 3]
+    wire [29:0] n_cls;     
     wire [29:0] n_dens;
     genvar k;
     generate
@@ -48,7 +46,7 @@ module phys_move_rules (
         end
     endgenerate
 
-    // Friendly names for each neighbour's class and density
+    // Each neighbour's class and density
     wire [2:0] d_cls  = n_cls[2:0],   d_dens  = n_dens[2:0];
     wire [2:0] dl_cls = n_cls[5:3],   dl_dens = n_dens[5:3];
     wire [2:0] dr_cls = n_cls[8:6],   dr_dens = n_dens[8:6];
@@ -60,8 +58,7 @@ module phys_move_rules (
     wire [2:0] l2_cls = n_cls[26:24];
     wire [2:0] r2_cls = n_cls[29:27];
 
-    // Helper questions
-    // Can I fall into a cell with this class/density?
+    // Fall into a cell with this class/density?
     function can_fall;
         input [2:0] cls;
         input [2:0] dens;
@@ -88,7 +85,7 @@ module phys_move_rules (
         tgt = S_NONE;
         case (c_cls)
 
-            // ======================== POWDER ========================
+            // Powder
             `CL_POWDER: begin
                 if (can_fall(d_cls, d_dens, c_dens)) begin
                     // sinking through a liquid is slower (5 times in 8)
@@ -108,7 +105,7 @@ module phys_move_rules (
                 end
             end
 
-            // ======================== LIQUID ========================
+            // Liquid
             `CL_LIQUID: begin
                 if (can_fall(d_cls, d_dens, c_dens)) begin
                     if (d_cls == `CL_LIQUID) tgt = rnd[7] ? S_D : S_NONE;  // gentle layering
@@ -136,7 +133,7 @@ module phys_move_rules (
                 end
             end
 
-            // ========================= GAS ==========================
+            // Gas
             `CL_GAS: begin
                 if (rnd[2:0] < 3'd5) begin
                     if (u_cls == `CL_EMPTY)
@@ -156,7 +153,7 @@ module phys_move_rules (
                 end
             end
 
-            // ========================= FIRE =========================
+            // Fire
             `CL_FIRE: begin
                 case (rnd[2:0])
                     3'd0, 3'd1, 3'd2, 3'd3: tgt = (u_cls  == `CL_EMPTY) ? S_U  : S_NONE;

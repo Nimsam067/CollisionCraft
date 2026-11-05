@@ -1,6 +1,6 @@
 // Generates the physics step pulse, 120 times a second (30 in slow motion). If
 // an engine is still busy when the next step is due, it waits for it.
-//
+
 // Owner: Aadi (Physics Engine)
 
 `include "cc_defines.vh"
@@ -9,7 +9,7 @@ module phys_step_timer (
     input  wire clk,
     input  wire rst,
     input  wire slow,          // slow motion switch
-    input  wire any_busy,      // OR of all engines' busy flags
+    input  wire any_busy,      // checking if any engine is busy
     output reg  step
 );
 

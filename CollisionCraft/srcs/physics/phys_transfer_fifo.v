@@ -2,7 +2,7 @@
 // Grains leaving the bottom of JB or JC are pushed in and come out at the top of
 // the matching funnel in JA. dout always shows the oldest grain, and almost_full
 // tells the chamber to keep its valve shut for a moment.
-//
+
 // Owner: Aadi (Physics Engine)
 
 module phys_transfer_fifo #(

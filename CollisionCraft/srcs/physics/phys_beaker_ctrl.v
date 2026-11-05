@@ -1,7 +1,7 @@
 // Drain for the reaction beaker (JA). Pressing DOWN opens the drain, everything
 // falls out (flush is on so solids fall too), and it closes again once the
 // beaker has been empty for two steps.
-//
+
 // Owner: Aadi (Physics Engine)
 
 `include "cc_defines.vh"
@@ -11,7 +11,7 @@ module phys_beaker_ctrl (
     input  wire        rst,
     input  wire        step_done,
     input  wire [12:0] cell_count,
-    input  wire        drain_cmd,      // pulse
+    input  wire        drain_cmd,      
     output reg         draining,
     output wire        drain_open,
     output wire [1:0]  sink_mode,

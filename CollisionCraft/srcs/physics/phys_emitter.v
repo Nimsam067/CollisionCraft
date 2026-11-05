@@ -2,7 +2,7 @@
 // funnel. The width of the stream depends on the material, so liquids come out
 // thin and sand sprinkles out wide. continuous = 1 keeps pouring forever, which
 // is used for the title screen demo.
-//
+
 // Owner: Aadi (Physics Engine)
 
 `include "cc_defines.vh"
@@ -10,13 +10,13 @@
 module phys_emitter (
     input  wire       clk,
     input  wire       rst,
-    input  wire       start,          // pulse: begin a new pour of start_mat
+    input  wire       start,          // being a new pour
     input  wire [5:0] start_mat,
-    input  wire       stop,           // pulse: abandon the pour
+    input  wire       stop,           // stop the pour
     input  wire       pause,          // hold (two switches up)
-    input  wire       continuous,     // demo mode: pour forever
+    input  wire       continuous,     // demo mode: pour forever (opening screen)
     input  wire [5:0] demo_mat,
-    input  wire       pop,            // engine placed one grain
+    input  wire       pop,            
     output wire       valid,
     output wire [5:0] mat,
     output reg  [5:0] x0,

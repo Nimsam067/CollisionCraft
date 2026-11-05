@@ -1,7 +1,7 @@
 // Dual port block RAM holding one screen of cells (6144 x 16 bits). Port A is
 // used by the physics engine on the core clock and port B is read by the
 // renderer on the OLED clock. Both have one cycle of read latency.
-//
+
 // Owner: Aadi (Physics Engine)
 
 module phys_grid_ram (
