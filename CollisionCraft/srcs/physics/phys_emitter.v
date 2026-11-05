@@ -1,23 +1,11 @@
-// =============================================================================
-//  phys_emitter.v  --  Pours a fixed amount of material into a funnel
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 2  (Physics Engine)
+// Pours a set amount of material (POUR_VOLUME grains) into the top of the
+// funnel. The width of the stream depends on the material, so liquids come out
+// thin and sand sprinkles out wide. continuous = 1 keeps pouring forever, which
+// is used for the title screen demo.
 //
-//  When the chamber controller says "start", the emitter offers grains of
-//  that material to the physics engine until POUR_VOLUME grains have been
-//  placed (the engine pulses `pop` for each one).
-//
-//  Different materials pour differently, just by changing how wide the
-//  spawn area is:
-//      liquids  -> a thin 2-pixel stream
-//      lava     -> a thick 4-pixel gloop
-//      metal    -> a 4-pixel trickle
-//      sand     -> an 8-pixel sprinkle
-//
-//  `continuous` = 1 ignores the volume and pours forever (title screen demo).
-// =============================================================================
+// Owner: Aadi (Physics Engine)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module phys_emitter (
     input  wire       clk,
@@ -71,5 +59,3 @@ module phys_emitter (
     end
 
 endmodule
-
-`default_nettype wire

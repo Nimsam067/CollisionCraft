@@ -1,40 +1,17 @@
-// =============================================================================
-//  rxn_table.v  --  THE REACTION RULEBOOK
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 3  (Interactions & Game Logic)
+// The reaction rules. The physics engine gives us two touching grains, C and N,
+// and this works out whether they react and what they turn into.
 //
-//  The physics engine shows us two touching grains, C (the one being
-//  processed) and N (a random neighbour), and asks: "do these react, and if
-//  so what do they turn into?"
+// Order matters: each grain in the beaker has a tag saying which release it came
+// in with, so we can tell if A was there first, B was there first, or they came
+// in together. For example water then lava gives obsidian, lava then water gives
+// pumice, and both together give stone.
 //
-//  ORDER MATTERS
-//  -------------
-//  Every grain in the beaker carries a TAG saying which release it came in
-//  with (2 = newest, 1 = the one before, 0 = older). For a pair of
-//  materials A and B (A has the smaller ID) we work out the CONTEXT:
+// A rule is written as rule(new_a, new_b, chance, reaction_id, effect), where
+// chance is out of 16 per step. Always put the lower material ID first.
 //
-//     A_FIRST   A was in the beaker before B arrived  (A's tag is smaller)
-//     B_FIRST   B was there first
-//     TOGETHER  they arrived in the same release (both switches released at once)
-//
-//  ...and each context can give a completely different result:
-//     water first, then lava  ->  OBSIDIAN   (lava sinks and is quenched)
-//     lava first, then water  ->  PUMICE     (steam eruption, frothy rock)
-//     water + lava together   ->  STONE
-//
-//  HOW TO READ A RULE
-//  ------------------
-//     if (a == `M_WATER && b == `M_LAVA) case (ctx)
-//         A_FIRST: rule(`M_WATER, `M_OBSIDIAN, 6, `RX_OBSIDIAN, `FX_NONE);
-//
-//  means: when water (a) was first, water stays water, lava (b) becomes
-//  obsidian, with probability 6/16 per step, and announce "OBSIDIAN".
-//  The probability makes reactions spread gradually instead of instantly.
-//
-//  ALWAYS write the lower material ID first (see cc_defines.vh).
-// =============================================================================
+// Owner: Arnav (Interactions & Game Logic)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module rxn_table (
     input  wire [5:0] c_mat,
@@ -55,7 +32,7 @@ module rxn_table (
     output wire [3:0] on_life
 );
 
-    // ---- Sort the pair so that a has the smaller material ID ---------------------------
+    // Sort the pair so that a has the smaller material ID
     wire       c_is_a = (c_mat <= n_mat);
     wire [5:0] a  = c_is_a ? c_mat  : n_mat;
     wire [5:0] b  = c_is_a ? n_mat  : c_mat;
@@ -64,16 +41,16 @@ module rxn_table (
     wire [3:0] la = c_is_a ? c_life : n_life;
     wire [3:0] lb = c_is_a ? n_life : c_life;
 
-    // ---- Context ------------------------------------------------------------------------
+    // Context
     localparam [1:0] TOGETHER = 2'd0, A_FIRST = 2'd1, B_FIRST = 2'd2;
     wire [1:0] ctx = (ta == tb) ? TOGETHER : (ta < tb) ? A_FIRST : B_FIRST;
 
-    // ---- Does b glow when hot (for the generic "hot + water = steam" rule)? -------------
+    // Does b glow when hot (for the generic "hot + water = steam" rule)?
     wire b_glows;
     mat_properties pb (.mat(b), .cls(), .dens(), .flow(), .init_life(), .decay(),
                        .flammable(), .glows(b_glows));
 
-    // ---- Results in sorted order ---------------------------------------------------------
+    // Results in sorted order
     reg       found;
     reg [5:0] ra, rb;             // what a and b become
     reg       la_en, lb_en;       // LIFE overrides
@@ -100,9 +77,7 @@ module rxn_table (
         found = 1'b0; ra = a; rb = b; prob = 5'd0; rxn_id = `RX_NONE; fx = `FX_NONE;
         la_en = 1'b0; lb_en = 1'b0; la_new = 4'd0; lb_new = 4'd0;
 
-        // =====================================================================
-        //  WATER (1) + ...
-        // =====================================================================
+        // WATER (1) + ...
         if (a == `M_WATER && b == `M_SAND) begin
             case (ctx)
                 A_FIRST: rule(`M_WATER,   `M_WETSAND, 5'd3, `RX_RIVERBED, `FX_NONE); // sand settles under clear water
@@ -145,9 +120,7 @@ module rxn_table (
             rule(`M_STEAM, `M_BLAST, 5'd8, `RX_NONE, `FX_NONE);
         end
 
-        // =====================================================================
-        //  SAND (2) + ...
-        // =====================================================================
+        // SAND (2) + ...
         else if (a == `M_SAND && b == `M_LAVA) begin
             case (ctx)
                 A_FIRST: rule(`M_GLASS,     `M_LAVA, 5'd3, `RX_GLASS,     `FX_NONE); // lava melts the sand bed
@@ -163,9 +136,7 @@ module rxn_table (
             endcase
         end
 
-        // =====================================================================
-        //  LAVA (3) + ...
-        // =====================================================================
+        // LAVA (3) + ...
         else if (a == `M_LAVA && b == `M_METAL) begin
             case (ctx)
                 A_FIRST: rule(`M_LAVA, `M_MOLTEN, 5'd4, `RX_SINKMELT, `FX_NONE); // metal sinks in and melts
@@ -200,9 +171,7 @@ module rxn_table (
             rule(`M_LAVA, `M_FIRE, 5'd4, `RX_BLAZE, `FX_NONE);
         end
 
-        // =====================================================================
-        //  METAL (4) + ...
-        // =====================================================================
+        // METAL (4) + ...
         else if (a == `M_METAL && b == `M_ACID) begin
             case (ctx)
                 A_FIRST: rule(`M_HYDROGEN, `M_SOLUTION, 5'd2, `RX_FIZZ,     `FX_NONE);
@@ -214,9 +183,7 @@ module rxn_table (
             rule(`M_COATED, `M_OIL, 5'd3, `RX_COATED, `FX_NONE);
         end
 
-        // =====================================================================
-        //  ACID (5) + ...   (chain reactions with products)
-        // =====================================================================
+        // ACID (5) + ...   (chain reactions with products)
         else if (a == `M_ACID && b == `M_STONE) begin
             rule(`M_DILUTE, `M_FUMES, 5'd1, `RX_ETCHED, `FX_NONE);
         end
@@ -224,9 +191,7 @@ module rxn_table (
             rule(`M_DILUTE, `M_SOLUTION, 5'd3, `RX_RUSTGONE, `FX_NONE);
         end
 
-        // =====================================================================
-        //  OIL (6), FIRE (21), HYDROGEN (23), BLAST (30)
-        // =====================================================================
+        // OIL (6), FIRE (21), HYDROGEN (23), BLAST (30)
         else if (a == `M_OIL && b == `M_FIRE) begin
             rule(`M_FIRE, `M_FIRE, 5'd5, `RX_BLAZE, `FX_NONE);
         end
@@ -256,10 +221,8 @@ module rxn_table (
             end
         end
 
-        // =====================================================================
-        //  GENERIC: anything glowing hot + water = sizzle into steam
-        //  (only if no specific rule above matched)
-        // =====================================================================
+        // GENERIC: anything glowing hot + water = sizzle into steam
+        // (only if no specific rule above matched)
         if (!found && a == `M_WATER && b_glows && lb != 4'd0) begin
             rule(`M_STEAM, b, 5'd3, `RX_SIZZLE, `FX_NONE);
             lb_en  = 1'b1;
@@ -267,7 +230,7 @@ module rxn_table (
         end
     end
 
-    // ---- Map the sorted results back onto C and N ----------------------------------------
+    // Map the sorted results back onto C and N
     assign hit        = found;
     assign out_c      = c_is_a ? ra     : rb;
     assign out_n      = c_is_a ? rb     : ra;
@@ -277,5 +240,3 @@ module rxn_table (
     assign on_life    = c_is_a ? lb_new : la_new;
 
 endmodule
-
-`default_nettype wire

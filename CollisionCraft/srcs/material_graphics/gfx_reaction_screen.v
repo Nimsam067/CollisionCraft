@@ -1,33 +1,12 @@
-// =============================================================================
-//  gfx_reaction_screen.v  --  Draws the reaction beaker (JA) and title screen
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 1  (Materials, Graphics & Controls)
+// Draws the JA screen. In the lab this is the beaker, the two funnels, the
+// recipe header, the fill gauge and the reaction banner. It also draws the title
+// screen and its menu, the pause menu, the message box for tutorial and
+// challenge text, the button picture for the tutorial, and the white flash for
+// explosions.
 //
-//  LAB VIEW                                   TITLE VIEW
-//    WAT > LAV          header / recipe        COLLISION   (colour-cycling)
-//   \    /  \    /      two funnels (JB, JC)     CRAFT     (molten gradient)
-//     ||      ||                                ~ LAB ~
-//  |                |#  beaker + fill gauge   [ TUTORIAL ]  <- highlighted bar
-//  |  +----------+  |#                          FREE PLAY
-//  |  | OBSIDIAN!|  |#  reaction banner          CHALLENGE
-//  |  +----------+  |#  (pops open, "NEW!"
-//  |~~~~~~~~~~~~~~~~|#   tag on discoveries)    C = START
-//  |________________|   floor + drain           (the live simulation keeps
-//                                                running dimmed behind it)
-//  On top of both views: a message box for tutorial / challenge text and a
-//  white flash for explosions.
-//
-//  PAUSE POP-UP (MENU button)           BUTTON PICTURE (tutorial tour)
-//   +----------------+                         [ UP ]
-//   |     PAUSED     |                  [MENU] [ OK ] [HINT]
-//   | [  RESUME    ] |                        [DOWN]
-//   |    RESTART     |                  The button being taught blinks gold.
-//   |    QUIT        |                  Drawn from the player's point of view.
-//   |    < RESUME    |
-//   +----------------+
-// =============================================================================
+// Owner: Zi Le (Materials, Graphics & Controls)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module gfx_reaction_screen #(
     parameter ROTATE = 1,
@@ -57,15 +36,15 @@ module gfx_reaction_screen #(
     input  wire [3:0]  flash,
     input  wire [6:0]  fill_rows,         // 0..66 rows of the beaker that are full
     input  wire        drain_open,
-    input  wire        pause_show,        // draw the pause pop-up
+    input  wire        pause_show,        // draw the pause popup
     input  wire [1:0]  pause_sel,         // 0 RESUME, 1 RESTART, 2 QUIT
-    input  wire        pad_show,          // draw the five-button picture
+    input  wire        pad_show,          // draw the five button picture
     input  wire [2:0]  pad_hi,            // 0 none, 1 OK, 2 UP, 3 DOWN, 4 MENU, 5 HINT
     // to Oled_Display
     output reg  [15:0] pixel_data
 );
 
-    // ---- Bring the UI signals into this clock domain ----------------------------------
+    // Bring the UI signals into this clock domain
     reg        title_q, msg_q, ban_q, new_q, drain_q;
     reg [1:0]  sel_q;
     reg [79:0] hdr_q, m0_q, m1_q, m2_q, m3_q, ban_str_q;
@@ -83,7 +62,7 @@ module gfx_reaction_screen #(
         flash_q <= flash; fill_q <= fill_rows; drain_q <= drain_open;
     end
 
-    // ---- Frame counter and banner "pop open" animation ----------------------------------
+    // Frame counter and banner "pop open" animation
     reg [7:0]  frame = 8'd0;
     reg [3:0]  ban_age = 4'd0;            // 0 = just appeared, 7+ = fully open
     reg [79:0] ban_last = 80'd0;
@@ -97,10 +76,10 @@ module gfx_reaction_screen #(
                 ban_age <= ban_age + 4'd1;
         end
     end
-    // half-width of the banner box grows 4 px per frame up to 31 px (x 1..62)
+    // half width of the banner box grows 4 px per frame up to 31 px (x 1..62)
     wire [5:0] ban_half = (ban_age >= 4'd8) ? 6'd31 : {ban_age, 2'b00};
 
-    // ---- Pixel addressing (see gfx_oled_mapper for the look-ahead trick) -------------------
+    // Pixel addressing (see gfx_oled_mapper for the look ahead trick)
     wire advance, start;
     wire [6:0] lx, ly;
     gfx_oled_mapper #(.ROTATE(ROTATE), .MIRROR(MIRROR)) mapper (
@@ -119,7 +98,7 @@ module gfx_reaction_screen #(
         endcase
     end
 
-    // ---- Geometry and material colour ------------------------------------------------------
+    // Geometry and material colour
     wire       is_wall;
     wire [2:0] part;
     gfx_chamber_geometry #(.CHAMBER(1)) geo (
@@ -134,9 +113,9 @@ module gfx_reaction_screen #(
         .lx(lx), .ly(ly), .frame(frame), .rgb(mat_rgb), .alpha(mat_alpha)
     );
 
-    // ---- Text layer A: header, message box, title, menu ---------------------------------------
+    // Text layer A: header, message box, title, menu
     // Menu item rows
-    // (the title menu and the pause pop-up use the same three rows and highlight bar)
+    // (the title menu and the pause popup use the same three rows and highlight bar)
     localparam [6:0] MENU_Y0 = 7'd46, MENU_Y1 = 7'd58, MENU_Y2 = 7'd70;
     wire       pause_on = pause_q && !title_q;
     wire [1:0] bar_sel  = pause_on ? psel_q : sel_q;
@@ -171,7 +150,7 @@ module gfx_reaction_screen #(
                 a_col = {5'd14, 6'd32, 5'd20};
             end
         end else if (pause_on) begin
-            // ---- pause pop-up ----
+            // pause popup
             if (ly >= 7'd1 && ly <= 7'd7) begin
                 a_str = hdr_q; a_oy = 9'sd1; a_en = 1'b1; a_col = hcol_q;
             end else if (ly >= 7'd32 && ly <= 7'd38) begin
@@ -209,7 +188,7 @@ module gfx_reaction_screen #(
         .str(a_str), .on(a_on)
     );
 
-    // ---- Text layer B: reaction banner --------------------------------------------------------
+    // Text layer B: reaction banner
     reg [79:0]       b_str;
     reg signed [8:0] b_oy;
     reg              b_en;
@@ -232,8 +211,8 @@ module gfx_reaction_screen #(
         .str(b_str), .on(b_on)
     );
 
-    // ---- Text layer P: the five-button picture (tutorial) -------------------------------------
-    //  Boxes (x range, y range)             label
+    // Text layer P: the five button picture (tutorial)
+    // Boxes (x range, y range)             label
     //    UP    [26..38] x [64..73]           "UP"
     //    MENU  [ 0..24] x [75..84]           "MENU"
     //    OK    [26..38] x [75..84]           "OK"
@@ -264,7 +243,7 @@ module gfx_reaction_screen #(
     wire pad_here = pad_q && !title_q && !pause_on && (p_key != 3'd0);
     wire pad_lit  = (p_key == padhi_q);                 // the button being taught
 
-    // ---- Helpers ------------------------------------------------------------------------------
+    // Helpers
     function [15:0] blend;
         input [15:0] a, b;
         reg   [5:0]  sr;
@@ -312,14 +291,14 @@ module gfx_reaction_screen #(
     wire [5:0] craft_g   = 6'd60 - {craft_row[4:0], 2'b0};    // 60 .. 8
     wire       shimmer   = (((lx - ly + {frame, 1'b0}) & 7'd63) < 7'd4);
 
-    // ---- Final composition -------------------------------------------------------------------
+    // Final composition
     wire in_beaker = (lx >= 7'd4) && (lx <= 7'd59) && (ly >= 7'd26) && (ly <= 7'd91);
     wire [6:0] depth = 7'd91 - ly;                            // 0 at the floor
     wire tick_row    = (depth[2:0] == 3'd0) && (depth != 7'd0) && (ly > 7'd27);
     wire in_gauge    = (lx >= 7'd62) && (ly >= 7'd26) && (ly <= 7'd91);
-    // TEXT-FIT RULE: any line inside a box (message box, banner) is at most
+    // TEXT FIT RULE: any line inside a box (message box, banner) is at most
     // 9 characters = 53 px, centred at x 5..57. The boxes span x 1..62, so
-    // there is always a 3-4 px margin and text never touches or crosses a border.
+    // there is always a 3 to 4 px margin and text never touches or crosses a border.
     wire in_msgbox   = msg_q && !title_q && (lx >= 7'd1) && (lx <= 7'd62) && (ly >= 7'd27) && (ly <= 7'd63);
     wire msg_border  = (lx == 7'd1) || (lx == 7'd62) || (ly == 7'd27) || (ly == 7'd63);
     wire [6:0] bx_lo = 7'd32 - {1'b0, ban_half};
@@ -390,7 +369,7 @@ module gfx_reaction_screen #(
         // 5. title screen dims the simulation so the logo stands out
         if (title_q) out = dim2(out);
 
-        // 5b. pause: dim everything, draw the pop-up box
+        // 5b. pause: dim everything, draw the popup box
         if (pause_on) out = dim2(out);
         if (in_pausebox)
             out = pause_edge ? {5'd31, 6'd44, 5'd4} : blend({5'd1, 6'd3, 5'd8}, dim2(out));
@@ -437,7 +416,7 @@ module gfx_reaction_screen #(
             out = add_flash(out, flash_q);
     end
 
-    // ---- Run the pipeline ---------------------------------------------------------------------
+    // Run the pipeline
     always @(posedge clk) begin
         if (advance)
             pixel_data <= next_pix;
@@ -452,5 +431,3 @@ module gfx_reaction_screen #(
     end
 
 endmodule
-
-`default_nettype wire

@@ -1,26 +1,14 @@
-// =============================================================================
-//  phys_chamber_ctrl.v  --  Life cycle of one reagent chamber (JB or JC)
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 2  (Physics Engine)
+// State machine for one reagent chamber (JB or JC).
+// EMPTY waits for a switch, POUR fills it up, READY waits for the release
+// button, RELEASE opens the valve so it drains into JA, and SPENT waits for the
+// switch to go back down. Turning the switch off (or picking another one) during
+// POUR, HOLD or READY goes to DISCARD, which opens the trapdoor. HOLD is when two
+// switches are up and pouring is paused. A state counts as drained once the
+// engine has seen zero grains for two steps in a row.
 //
-//                 switch up                 all poured
-//      EMPTY ----------------> POUR ----------------------> READY
-//        ^                    |  ^                            |
-//        |    two switches up |  | fixed                      | release button
-//        |                    v  |                            v
-//        |                    HOLD                         RELEASE (valve open,
-//        |                                                    |     grains go
-//        |  switch down / different switch                    |     down the pipe)
-//        |  (from POUR, HOLD or READY)                        v
-//        +------- DISCARD (trapdoor open) <------         SPENT (wait for the
-//        |                                                     switch to go down)
-//        +-----------------------------------------------------+
-//
-//  A state is "finished draining" once the engine has counted zero grains
-//  for two steps in a row (and the animation has had at least ~0.25 s).
-// =============================================================================
+// Owner: Aadi (Physics Engine)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module phys_chamber_ctrl (
     input  wire        clk,
@@ -43,7 +31,7 @@ module phys_chamber_ctrl (
     output wire        flush
 );
 
-    // ---- Outputs that follow directly from the state ---------------------------------
+    // Outputs that follow directly from the state
     assign emit_pause    = (state == `CH_HOLD);
     assign valve_open    = (state == `CH_RELEASE);
     assign trapdoor_open = (state == `CH_DISCARD);
@@ -51,7 +39,7 @@ module phys_chamber_ctrl (
                            (state == `CH_DISCARD) ? `SINK_DELETE : `SINK_CLOSED;
     assign flush         = (state == `CH_DISCARD);
 
-    // ---- "Is the chamber empty yet?" ----------------------------------------------------
+    // "Is the chamber empty yet?"
     reg [1:0] zero_steps;     // consecutive steps with no grains
     reg [5:0] steps_in_state; // for minimum animation time
     reg       was_ready;      // remember if the pour had finished before HOLD
@@ -76,7 +64,7 @@ module phys_chamber_ctrl (
             was_ready      <= 1'b0;
             emit_stop      <= 1'b1;
         end else begin
-            // ---- bookkeeping per physics step ----
+            // bookkeeping per physics step
             prev_state <= state;
             if (state != prev_state) begin
                 zero_steps     <= 2'd0;
@@ -89,7 +77,7 @@ module phys_chamber_ctrl (
                 if (steps_in_state != 6'd63) steps_in_state <= steps_in_state + 6'd1;
             end
 
-            // ---- the state machine ----
+            // the state machine
             case (state)
                 `CH_EMPTY: begin
                     if (allow_pour && sel_state == `SEL_ONE) begin
@@ -159,5 +147,3 @@ module phys_chamber_ctrl (
     end
 
 endmodule
-
-`default_nettype wire

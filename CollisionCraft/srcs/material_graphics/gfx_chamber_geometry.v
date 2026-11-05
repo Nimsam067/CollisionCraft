@@ -1,37 +1,12 @@
-// =============================================================================
-//  gfx_chamber_geometry.v  --  Shape of the glassware on each screen
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 1  (Materials, Graphics & Controls)
+// Shape of the glassware on each screen (funnels, walls, floors and valves).
+// These are real obstacles: the physics engine asks this module whether a pixel
+// is a wall, so sand slides down the funnel and water pools against the glass.
+// Opening a valve just means we stop reporting those pixels as wall.
 //
-//  The funnels, walls and floors are NOT pictures painted on top. They are
-//  real solid obstacles: the physics engine asks this module "is (x, y)
-//  a wall?" for every neighbour it looks at, so sand really slides down the
-//  funnel slope and water really pools against the glass. The renderer asks
-//  the same question so what you see matches what the physics feels.
+// Part codes for the renderer: 0 none, 1 glass wall, 2 funnel, 3 floor/hopper,
+// 4 closed valve, 5 spout, 6 beaker drain floor, 7 rim highlight.
 //
-//  Because walls are computed (not stored in RAM), opening a valve is free:
-//  just stop reporting those pixels as wall and everything above falls out.
-//
-//  REAGENT CHAMBER (JB / JC)                 REACTION BEAKER (JA)
-//
-//   y  0-15   name card                       y 0-8    header text
-//   y 16-23   description                     y 10-19  two funnels  \  / \  /
-//   y 25-34   funnel  \        /              y 20-23  two necks     ||   ||
-//   y 35-38   neck        ||                  y 25-91  beaker body |        |
-//   y 40-63   body   |          |             y 92-93  floor (drops open
-//   y 64-87   hopper  \        /                       when draining)
-//   y 86-87   valve       ==                  y 94-95  drain spout
-//   y 88-95   spout       ||
-//
-//  The hopper's 45-degree slopes matter: sand only slides down a slope at
-//  least that steep, so a sloped bottom guarantees a chamber always drains
-//  completely through the small valve.
-//
-//  part codes (for the renderer to choose a colour):
-//    0 none   1 glass wall   2 funnel   3 floor / hopper   4 valve (closed)
-//    5 spout  6 drain floor (beaker)    7 rim highlight
-// =============================================================================
-`default_nettype none
+// Owner: Zi Le (Materials, Graphics & Controls)
 
 module gfx_chamber_geometry #(
     parameter CHAMBER = 0                // 0 = reagent chamber, 1 = reaction beaker
@@ -46,12 +21,10 @@ module gfx_chamber_geometry #(
     output reg        interior           // inside the glass (for background tint)
 );
 
-    // Mirror x for the right-hand side so we only describe the left side once
+    // Mirror x for the right hand side so we only describe the left side once
     wire [6:0] xm = 7'd63 - x;
 
-    // =====================================================================
-    //  Reagent chamber
-    // =====================================================================
+    // Reagent chamber
     // Funnel: the left wall's inner edge moves 2 px right per row,
     // from x=9 at y=25 to x=27 at y=34. 3 px thick.
     wire [7:0] r_fun_edge = 8'd9 + ({1'b0, y} - 8'd25) * 8'd2;
@@ -82,9 +55,7 @@ module gfx_chamber_geometry #(
     wire r_interior = ((y >= 7'd40) && (y <= 7'd63) && (x >= 7'd6) && (x <= 7'd57)) ||
                       (r_hop_rows && (x > r_hop_edge) && (xm > r_hop_edge));
 
-    // =====================================================================
-    //  Reaction beaker
-    // =====================================================================
+    // Reaction beaker
     // Two funnels. Left funnel walls run diagonally 1 px per row:
     //   outer wall: x = 3 + (y-10)          (going right as it goes down)
     //   inner wall: x = 28 - (y-10)         (going left)
@@ -114,9 +85,7 @@ module gfx_chamber_geometry #(
 
     wire b_interior = (x >= 7'd4) && (x <= 7'd59) && (y >= 7'd26) && (y <= 7'd91);
 
-    // =====================================================================
-    //  Final answer
-    // =====================================================================
+    // Final answer
     always @* begin
         is_wall  = 1'b0;
         part     = 3'd0;
@@ -140,5 +109,3 @@ module gfx_chamber_geometry #(
     end
 
 endmodule
-
-`default_nettype wire

@@ -1,33 +1,13 @@
-// =============================================================================
-//  mat_switch_select.v  --  Six material switches + their six LEDs
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 1  (Materials, Graphics & Controls)
+// Reads the six material switches for one chamber and drives the six LEDs above
+// them. One switch up selects that material, and two or more up is a conflict
+// which pauses pouring. The LEDs show what the chamber is doing (waiting,
+// pouring, ready, discarding, releasing, spent) using different blink and fade
+// patterns. Bit 0 is always WATER and bit 5 is always OIL, the top level sorts
+// out the wiring.
 //
-//  One instance per reagent chamber (JB uses sw15..sw10, JC uses sw5..sw0).
-//  Inside this module bit 0 is always WATER and bit 5 is always OIL; the top
-//  level does the wiring so the physical order is the same on both sides:
-//
-//      WATER  SAND  LAVA  METAL  ACID  OIL      (left to right)
-//
-//  SELECTION
-//    no switch up       -> SEL_NONE
-//    exactly one up     -> SEL_ONE, sel_mat = that material
-//    two or more up     -> SEL_CONFLICT (pouring pauses until you fix it)
-//
-//  LED LANGUAGE (the LED sits right above its switch)
-//    waiting for a pick : a dot sweeps back and forth   "pick one!"
-//    tutorial hint      : the suggested LEDs breathe
-//    pouring            : chosen LED blinks quickly
-//    ready              : chosen LED solid, others glow faintly
-//    discarding         : chosen LED drains (fades) repeatedly
-//    releasing          : chosen LED strobes
-//    spent              : chosen LED double-blinks  "flip me back down"
-//    conflict           : the raised switches flash alternately
-//
-//  LEDs are dimmed with PWM so they can fade smoothly (16 brightness levels).
-// =============================================================================
+// Owner: Zi Le (Materials, Graphics & Controls)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module mat_switch_select (
     input  wire       clk,
@@ -43,7 +23,7 @@ module mat_switch_select (
     output reg  [5:0] led
 );
 
-    // ---- Synchronise and debounce the switches ---------------------------------------
+    // Synchronise and debounce the switches
     // Sampling them only 60 times a second is a perfectly good debounce.
     reg [5:0] sw_s0, sw_s1, sw;
     always @(posedge clk) begin
@@ -53,7 +33,7 @@ module mat_switch_select (
         else if (anim_tick) sw <= sw_s1;
     end
 
-    // ---- Work out the selection ---------------------------------------------------------
+    // Work out the selection
     reg [2:0] n_up;
     reg [2:0] first_up;
     integer i;
@@ -78,9 +58,9 @@ module mat_switch_select (
         end
     end
 
-    // ---- Animation timers -------------------------------------------------------------------
+    // Animation timers
     reg [7:0] t;              // frame counter
-    reg [2:0] dot;            // sweeping-dot position 0..5
+    reg [2:0] dot;            // sweeping dot position 0..5
     reg       dot_dir;        // 0 = moving right, 1 = moving left
     always @(posedge clk) begin
         if (rst) begin
@@ -103,7 +83,7 @@ module mat_switch_select (
     // Which LED belongs to the material in the chamber?
     wire [2:0] cur_idx = ch_mat[2:0] - 3'd1;
 
-    // ---- Brightness of each LED (0..15) ---------------------------------------------------
+    // Brightness of each LED (0..15)
     reg [23:0] bright;        // 6 x 4 bits, LED i at bright[4*i +: 4]
     integer k;
     always @* begin
@@ -134,7 +114,7 @@ module mat_switch_select (
         end
     end
 
-    // ---- PWM: an LED with brightness B is on for B out of every 16 counts ---------
+    // PWM: an LED with brightness B is on for B out of every 16 counts
     reg [3:0] pwm = 4'd0;
     integer j;
     always @(posedge clk) begin
@@ -144,5 +124,3 @@ module mat_switch_select (
     end
 
 endmodule
-
-`default_nettype wire

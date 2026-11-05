@@ -1,16 +1,7 @@
-// =============================================================================
-//  phys_lfsr.v  --  Random number generator
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 2  (Physics Engine)
+// 32 bit LFSR random number generator. Gives a new pseudo random value every
+// clock. Each screen uses a different SEED so they don't behave the same.
 //
-//  A 32-bit Galois linear-feedback shift register. Every clock it produces a
-//  new pseudo-random 32-bit value. The physics uses it everywhere:
-//  which way a grain slides, whether a reaction fires this step, the
-//  speckle shade of a new grain...
-//
-//  Different SEEDs make the three screens behave independently.
-// =============================================================================
-`default_nettype none
+// Owner: Aadi (Physics Engine)
 
 module phys_lfsr #(
     parameter [31:0] SEED = 32'hACE1_2468
@@ -24,5 +15,3 @@ module phys_lfsr #(
         rnd <= (rnd >> 1) ^ (rnd[0] ? 32'h8020_0003 : 32'h0);
 
 endmodule
-
-`default_nettype wire

@@ -1,42 +1,33 @@
-// =============================================================================
-//  cc_defines.vh  --  COLLISIONCRAFT SHARED DEFINITIONS
-// -----------------------------------------------------------------------------
-//  OWNER: shared (all three team members)
+// Shared definitions used by all of us: grid size, cell layout, material IDs,
+// reaction IDs, states and tuning values. If you change something here, let the
+// others know.
 //
-//  This header is the "contract" between the three sections of the project:
+// Zi Le: mat_*, gfx_*, ui_* (materials, graphics and controls)
+// Aadi: phys_* (physics engine)
+// Arnav: rxn_*, game_* (reactions and game modes)
 //
-//     Person 1  (mat_*, gfx_*, ui_*)   Materials, graphics and controls
-//     Person 2  (phys_*)               Physics engine
-//     Person 3  (rxn_*, game_*)        Reactions and game modes
+// Add this file to the Vivado project as a Verilog Header so `include can find it.
 //
-//  Every number that more than one section needs lives here, so nobody has
-//  to guess what another person meant. If you change something here, tell
-//  the others!
-//
-//  Vivado note: add this file to the project as a "Verilog Header" so that
-//  every `include "cc_defines.vh" can find it.
-// =============================================================================
+// Owner: shared
+
 `ifndef CC_DEFINES_VH
 `define CC_DEFINES_VH
 
-// -----------------------------------------------------------------------------
-//  Simulation grid
-//  Every OLED is used in PORTRAIT orientation: 64 pixels wide, 96 pixels tall.
-//  One pixel = one "cell" of the falling-sand simulation.
-//  Address of cell (x, y) = y * 64 + x   (which is just {y, x} in binary)
-// -----------------------------------------------------------------------------
+// Simulation grid
+// Every OLED is used in PORTRAIT orientation: 64 pixels wide, 96 pixels tall.
+// One pixel = one "cell" of the falling sand simulation.
+// Address of cell (x, y) = y * 64 + x   (which is just {y, x} in binary)
 `define GRID_W        64
 `define GRID_H        96
 `define GRID_CELLS    6144
 
-// -----------------------------------------------------------------------------
-//  Layout of one 16-bit cell word
+// Layout of one 16 bit cell word
 //
 //   15 14 | 13  | 12 11 10 | 9 8 7 6 | 5 4 3 2 1 0
 //   TAG   | PAR | SHADE    | LIFE    | MATERIAL
 //
 //   MATERIAL : which material lives in this cell (see M_* below)
-//   LIFE     : 4-bit timer. Fire burns down, steam condenses, hot stone cools.
+//   LIFE     : 4 bit timer. Fire burns down, steam condenses, hot stone cools.
 //   SHADE    : random 0..7 chosen when the grain is born, so a pile of sand
 //              is speckled instead of one flat colour.
 //   PAR      : "parity" flag used by the physics engine so a grain that has
@@ -44,7 +35,6 @@
 //   TAG      : order tag for the reaction beaker (JA). 2 = arrived in the
 //              newest release, 1 = the release before, 0 = older.
 //              This is how "water FIRST then lava" differs from "together".
-// -----------------------------------------------------------------------------
 `define C_MAT     5:0
 `define C_LIFE    9:6
 `define C_SHADE  12:10
@@ -55,20 +45,18 @@
 `define TAG_PREV  2'd1
 `define TAG_NEW   2'd2
 
-// -----------------------------------------------------------------------------
-//  Material IDs
-//  1..6 are the six materials you can pour. Everything above is something
-//  that can only be MADE by a reaction.
-// -----------------------------------------------------------------------------
+// Material IDs
+// 1..6 are the six materials you can pour. Everything above is something
+// that can only be MADE by a reaction.
 `define M_EMPTY      6'd0
-// --- pourable base materials (switch order, left to right) ---
+// pourable base materials (switch order, left to right)
 `define M_WATER      6'd1
 `define M_SAND       6'd2
 `define M_LAVA       6'd3
 `define M_METAL      6'd4
 `define M_ACID       6'd5
 `define M_OIL        6'd6
-// --- reaction products ---
+// reaction products
 `define M_STEAM      6'd7
 `define M_STONE      6'd8
 `define M_OBSIDIAN   6'd9
@@ -86,23 +74,21 @@
 `define M_FIRE       6'd21
 `define M_SMOKE      6'd22
 `define M_HYDROGEN   6'd23
-`define M_SOLUTION   6'd24   // green metal-salt solution
+`define M_SOLUTION   6'd24   // green metal salt solution
 `define M_TAR        6'd25
 `define M_EMULSION   6'd26
 `define M_BRICK      6'd27
 `define M_POTTERY    6'd28
-`define M_COATED     6'd29   // oil-coated metal (rust proof)
-`define M_BLAST      6'd30   // short-lived explosion front
+`define M_COATED     6'd29   // oil coated metal (rust proof)
+`define M_BLAST      6'd30   // short lived explosion front
 `define M_SPATTER    6'd31   // acid droplets flung by "water onto acid"
 `define M_WETSAND    6'd32   // riverbed sand
 `define M_BEADS      6'd33   // glass beads
-// --- special pseudo-materials, never stored in RAM ---
+// special pseudo materials, never stored in RAM
 `define M_SINK       6'd62   // "the floor is open here, fall out of the screen"
 `define M_WALL       6'd63   // chamber glass / funnel / floor
 
-// -----------------------------------------------------------------------------
-//  Material classes (how a material MOVES)
-// -----------------------------------------------------------------------------
+// Material classes (how a material MOVES)
 `define CL_EMPTY     3'd0
 `define CL_STATIC    3'd1    // never moves (stone, glass, walls)
 `define CL_POWDER    3'd2    // falls and piles up (sand, metal)
@@ -112,9 +98,7 @@
 `define CL_BLAST     3'd6    // explosion front, expands then vanishes
 `define CL_SINK      3'd7    // exit through an open floor
 
-// -----------------------------------------------------------------------------
-//  Reagent chamber (JB / JC) states
-// -----------------------------------------------------------------------------
+// Reagent chamber (JB / JC) states
 `define CH_EMPTY     3'd0    // nothing in it, waiting for a switch
 `define CH_POUR      3'd1    // material is pouring in through the funnel
 `define CH_READY     3'd2    // full, waiting for the release button
@@ -123,7 +107,7 @@
 `define CH_SPENT     3'd5    // released; the switch must go down again
 `define CH_HOLD      3'd6    // two switches up at once, pouring paused
 
-// Switch-group selection result
+// Switch group selection result
 `define SEL_NONE     2'd0
 `define SEL_ONE      2'd1
 `define SEL_CONFLICT 2'd2
@@ -133,10 +117,8 @@
 `define SINK_FIFO    2'd1    // grains go into the transfer pipe to JA
 `define SINK_DELETE  2'd2    // grains are thrown away (discard / drain)
 
-// -----------------------------------------------------------------------------
-//  Reaction IDs (used for banners, discoveries and challenge checks)
-//  0 means "something changed but don't announce it".
-// -----------------------------------------------------------------------------
+// Reaction IDs (used for banners, discoveries and challenge checks)
+// 0 means "something changed but don't announce it".
 `define RX_NONE        6'd0
 `define RX_OBSIDIAN    6'd1   // water first, then lava
 `define RX_PUMICE      6'd2   // lava first, then water
@@ -166,7 +148,7 @@
 `define RX_H2CLOUD     6'd26  // metal + acid together
 `define RX_TAR         6'd27  // sand and oil
 `define RX_COATED      6'd28  // metal and oil
-`define RX_BRICK       6'd29  // mud + lava (3-step chain)
+`define RX_BRICK       6'd29  // mud + lava (3 step chain)
 `define RX_POTTERY     6'd30  // clay + lava (chain)
 `define RX_KABOOM      6'd31  // hydrogen meets heat
 `define RX_QUENCH      6'd32  // molten metal + water
@@ -182,17 +164,13 @@
 `define FX_FLASH  2'd1        // white screen flash
 `define FX_BOOM   2'd2        // big flash + LED burst
 
-// -----------------------------------------------------------------------------
-//  Game modes
-// -----------------------------------------------------------------------------
+// Game modes
 `define MODE_TITLE     2'd0
 `define MODE_TUTORIAL  2'd1
 `define MODE_FREE      2'd2
 `define MODE_CHALLENGE 2'd3
 
-// -----------------------------------------------------------------------------
-//  7-segment glyph codes (decoded in ui_seven_seg.v)
-// -----------------------------------------------------------------------------
+// 7 segment glyph codes (decoded in ui_seven_seg.v)
 `define SG_0     5'd0
 `define SG_1     5'd1
 `define SG_2     5'd2
@@ -224,12 +202,10 @@
 `define SG_BLANK 5'd28
 `define SG_G     5'd29
 
-// -----------------------------------------------------------------------------
-//  Tuning knobs
-// -----------------------------------------------------------------------------
+// Tuning knobs
 `define CORE_HZ        25000000   // core logic clock (see clock_gen.v)
 `define STEP_DIV_FAST  208333     // 25 MHz / 120 = 120 physics steps per second
-`define STEP_DIV_SLOW  833333     // 30 steps per second (slow-motion switch)
+`define STEP_DIV_SLOW  833333     // 30 steps per second (slow motion switch)
 `define ANIM_DIV       416666     // 25 MHz / 60  = 60 Hz animation tick
 `define POUR_VOLUME    13'd700    // grains poured per selection
 `define BEAKER_FULL    13'd2900   // JA cell count that counts as "full"

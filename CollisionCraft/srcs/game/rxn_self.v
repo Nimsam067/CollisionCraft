@@ -1,25 +1,11 @@
-// =============================================================================
-//  rxn_self.v  --  Things that change ALL BY THEMSELVES over time
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 3  (Interactions & Game Logic)
+// Changes that happen to a grain on its own over time, without a neighbour. When
+// a grain's LIFE timer runs out, steam can condense back into water, fire turns
+// into smoke, gases fade away, molten metal sets into an ingot and so on. When
+// flush is on (draining or discarding), gases and fire disappear straight away.
 //
-//  No neighbour needed. Each grain's LIFE timer ticks down at the rate given
-//  by its "decay" property; when it reaches zero, some materials turn into
-//  something else:
-//
-//     STEAM    -> condenses into a WATER droplet (half the time) = rain!
-//     FIRE     -> SMOKE or nothing
-//     SMOKE, FUMES, HYDROGEN -> fade away
-//     SPATTER  -> lands as DILUTE acid
-//     BLAST    -> SMOKE
-//     EMULSION -> separates back into WATER or OIL
-//     MOLTEN   -> solidifies into a (glowing) INGOT
-//     hot solids just cool down (LIFE -> 0) and stay what they are
-//
-//  When "flush" is on (draining / discarding) gases and fire vanish at once.
-// =============================================================================
+// Owner: Arnav (Interactions & Game Logic)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module rxn_self (
     input  wire [5:0] mat,
@@ -95,5 +81,3 @@ module rxn_self (
     end
 
 endmodule
-
-`default_nettype wire

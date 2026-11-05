@@ -1,19 +1,8 @@
-// =============================================================================
-//  phys_grid_ram.v  --  The memory that holds one screen's worth of grains
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 2  (Physics Engine)
+// Dual port block RAM holding one screen of cells (6144 x 16 bits). Port A is
+// used by the physics engine on the core clock and port B is read by the
+// renderer on the OLED clock. Both have one cycle of read latency.
 //
-//  6144 cells x 16 bits. Vivado turns this into 3 block RAMs.
-//
-//  Port A (core clock, read + write): used by the physics engine.
-//  Port B (OLED clock, read only)   : used by the renderer to draw the screen.
-//
-//  Both ports have one cycle of read latency: put an address in, the data
-//  comes out on the next clock edge. The two ports run on different clocks,
-//  which block RAM handles natively, so the physics and the drawing never
-//  have to wait for each other.
-// =============================================================================
-`default_nettype none
+// Owner: Aadi (Physics Engine)
 
 module phys_grid_ram (
     // physics side
@@ -49,5 +38,3 @@ module phys_grid_ram (
     end
 
 endmodule
-
-`default_nettype wire

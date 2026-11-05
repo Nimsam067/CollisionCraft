@@ -1,24 +1,11 @@
-// =============================================================================
-//  rxn_tracker.v  --  Keeps score of what has happened in the beaker
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 3  (Interactions & Game Logic)
+// Keeps track of what happens in the beaker: which reactions have been
+// discovered, which reaction name to show in the banner, the white flash for
+// explosions, how many grains of the challenge target are in the beaker, and how
+// full the beaker is.
 //
-//  Listens to the JA physics engine and keeps track of:
-//
-//   * DISCOVERIES   - which of the 37 reactions you have seen at least once
-//                     (free play shows "found 12/37")
-//   * BANNER        - which reaction name to pop up on the screen. A new
-//                     discovery always gets the banner (with a "NEW!" tag);
-//                     otherwise a banner stays up ~2.5 s, and the same
-//                     reaction won't spam the banner again for a second.
-//   * FLASH         - explosions flash the screen white, fading out
-//   * TARGET COUNT  - how many grains of the challenge's target material
-//                     are in the beaker right now
-//   * FILL LEVEL    - how full the beaker is (for the gauge and "FULL!")
-//   * FOUND MASK    - which reactions are discovered (for free-play hints)
-// =============================================================================
+// Owner: Arnav (Interactions & Game Logic)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module rxn_tracker (
     input  wire        clk,
@@ -53,12 +40,12 @@ module rxn_tracker (
     output wire [63:0] found_mask       // bit N = reaction N has been discovered
 );
 
-    // ---- Discoveries -------------------------------------------------------------------
+    // Discoveries
     reg [63:0] found;
     wire       is_new = !found[rxn_id];
     assign     found_mask = found;     // free play uses this to suggest new reactions
 
-    // ---- Banner state ---------------------------------------------------------------------
+    // Banner state
     reg [5:0] ban_id;
     reg [7:0] ban_timer;       // frames left on screen
     reg [7:0] ban_age;         // frames since it appeared
@@ -68,7 +55,7 @@ module rxn_tracker (
     assign banner_show = (ban_timer != 8'd0);
     rxn_names names (.id(ban_id), .name(banner_str), .hint0(), .hint1());
 
-    // ---- Target counting --------------------------------------------------------------------
+    // Target counting
     reg [12:0] tgt_acc;
 
     always @(posedge clk) begin
@@ -93,7 +80,7 @@ module rxn_tracker (
             target_count <= 13'd0;
             banner_col   <= 16'hFFFF;
         end else begin
-            // ---------- a reaction happened ----------
+            // a reaction happened
             if (enable && rxn_valid) begin
                 if (rxn_fx == `FX_BOOM)       flash <= 4'd15;
                 else if (rxn_fx == `FX_FLASH && flash < 4'd8) flash <= 4'd8;
@@ -126,19 +113,19 @@ module rxn_tracker (
                 end
             end
 
-            // ---------- 60 Hz housekeeping ----------
+            // 60 Hz housekeeping
             if (anim_tick) begin
                 if (flash != 4'd0) flash <= flash - 4'd1;
                 if (ban_age != 8'd255) ban_age <= ban_age + 8'd1;
                 if (ban_timer == 8'd1) begin
-                    cool_id    <= ban_id;           // just timed out: start cool-down
+                    cool_id    <= ban_id;           // just timed out: start cooldown
                     cool_timer <= 6'd60;
                 end
                 if (ban_timer != 8'd0) ban_timer <= ban_timer - 8'd1;
                 if (cool_timer != 6'd0) cool_timer <= cool_timer - 6'd1;
             end
 
-            // ---------- count target grains each physics step ----------
+            // count target grains each physics step
             if (step_done) begin
                 target_count <= tgt_acc + ((visit_valid && visit_mat == target_mat) ? 13'd1 : 13'd0);
                 tgt_acc      <= 13'd0;
@@ -148,12 +135,9 @@ module rxn_tracker (
         end
     end
 
-    // ---- Fill level: about 54 grains fill one row of the beaker -----------------------------
+    // Fill level: about 54 grains fill one row of the beaker
     wire [12:0] rows = ja_count / 13'd54;
     assign fill_rows   = (rows > 13'd66) ? 7'd66 : rows[6:0];
     assign beaker_full = (ja_count >= `BEAKER_FULL);
 
 endmodule
-
-`default_nettype wire
-

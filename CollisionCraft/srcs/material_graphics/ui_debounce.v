@@ -1,17 +1,8 @@
-// =============================================================================
-//  ui_debounce.v  --  Clean up a push button
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 1  (Materials, Graphics & Controls)
+// Debounces a push button. Waits for the button to be stable for 10 ms, then
+// gives a level output while it is held, a one cycle pulse when it is pressed,
+// and another pulse once it has been held for HOLD_MS.
 //
-//  Real buttons "bounce": one press looks like several quick presses for a
-//  few milliseconds. This module waits until the button has been stable for
-//  10 ms before believing it, then gives you:
-//
-//    level  : 1 while the (clean) button is held
-//    press  : a single-cycle pulse on the moment it goes down
-//    hold   : a single-cycle pulse after it has been held for HOLD_MS
-// =============================================================================
-`default_nettype none
+// Owner: Zi Le (Materials, Graphics & Controls)
 
 module ui_debounce #(
     parameter CLK_HZ  = 25000000,
@@ -28,7 +19,7 @@ module ui_debounce #(
     localparam STABLE_CYCLES = CLK_HZ / 100;              // 10 ms
     localparam HOLD_CYCLES   = (CLK_HZ / 1000) * HOLD_MS;
 
-    // Two flip-flops bring the raw button safely into our clock domain
+    // Two flip flops bring the raw button safely into our clock domain
     reg sync0, sync1;
     always @(posedge clk) begin
         sync0 <= btn_raw;
@@ -48,7 +39,7 @@ module ui_debounce #(
             hold_cnt   <= 0;
             hold_fired <= 1'b0;
         end else begin
-            // --- debounce ---
+            // debounce
             if (sync1 == level) begin
                 stable_cnt <= 0;
             end else if (stable_cnt == STABLE_CYCLES) begin
@@ -59,7 +50,7 @@ module ui_debounce #(
                 stable_cnt <= stable_cnt + 1'b1;
             end
 
-            // --- long press ---
+            // long press
             if (!level) begin
                 hold_cnt   <= 0;
                 hold_fired <= 1'b0;
@@ -74,5 +65,3 @@ module ui_debounce #(
     end
 
 endmodule
-
-`default_nettype wire

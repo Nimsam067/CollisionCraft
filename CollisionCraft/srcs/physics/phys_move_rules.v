@@ -1,49 +1,17 @@
-// =============================================================================
-//  phys_move_rules.v  --  "Where does this grain want to go?"
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 2  (Physics Engine)
+// Decides where a grain moves. Given the grain C and its ten neighbours, it
+// picks one neighbour to swap with, or stays put. Powders fall and slide
+// diagonally to form piles, liquids fall and spread sideways, gases rise and
+// drift, and fire flickers upwards. Heavier things sink through lighter ones.
+// When flush is on, solids fall like powder so everything empties out.
 //
-//  The heart of the falling-sand physics. Given one grain (the centre C) and
-//  its ten neighbours, pick ONE neighbour to swap places with, or stay put.
-//  Pure combinational logic: no memory, no clock.
+// Neighbour slots:
+//          UL(7)  U(6)  UR(8)
+//   L2(9)  L(4)   [C]   R(5)   R2(10)
+//          DL(2)  D(1)  DR(3)
 //
-//  Neighbour slots (the engine reads them in this order):
-//
-//              UL(7)  U(6)  UR(8)
-//      L2(9)   L(4)   [C]   R(5)   R2(10)
-//              DL(2)  D(1)  DR(3)
-//
-//  RULES BY CLASS
-//  --------------
-//  POWDER (sand, metal...)
-//    1. fall straight down if the space below is air, gas, or a LIGHTER
-//       liquid (sand sinks through water, a bit slower: "drag")
-//    2. if it is lighter than the liquid above, float up (pumice, slag)
-//    3. otherwise slide diagonally down-left or down-right. This is what
-//       makes a pile with sloped sides. "flow" controls how readily it
-//       slides, so sticky mud keeps steep piles and dry sand flattens out.
-//
-//  LIQUID (water, oil, lava...)
-//    1. fall down (through air, gas, or lighter liquid)
-//    2. lighter liquids rise through heavier ones (oil floats on water)
-//    3. slide diagonally down, else spread sideways up to 2 cells,
-//       so the surface levels out. Viscous liquids (lava) try less often.
-//
-//  GAS (steam, smoke, fumes, hydrogen)
-//    mostly rise (bubbling up through liquids and powders), sometimes
-//    drift sideways, so plumes look wispy instead of shooting up in lines.
-//
-//  FIRE
-//    jitters upward at random: up, up-left, up-right, sideways.
-//
-//  ANTI-TUNNELLING: a diagonal move is only allowed if the side cell is not
-//  solid, otherwise grains could squeeze through the corners of a sloped wall.
-//
-//  "flush" (draining or discarding) makes solids act like powder and lets
-//  everything fall out.
-// =============================================================================
+// Owner: Aadi (Physics Engine)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module phys_move_rules (
     input  wire [5:0]  c_mat,          // the grain we are moving
@@ -53,11 +21,11 @@ module phys_move_rules (
     output reg  [3:0]  tgt             // 0 = stay, else the slot to swap with
 );
 
-    // ---- Slot numbers -------------------------------------------------------------------
+    // Slot numbers
     localparam [3:0] S_NONE = 4'd0, S_D = 4'd1, S_DL = 4'd2, S_DR = 4'd3, S_L = 4'd4,
                      S_R = 4'd5, S_U = 4'd6, S_UL = 4'd7, S_UR = 4'd8, S_L2 = 4'd9, S_R2 = 4'd10;
 
-    // ---- Properties of the centre grain -----------------------------------------------------
+    // Properties of the centre grain
     wire [2:0] c_cls_raw, c_dens_raw;
     wire [3:0] c_flow;
     mat_properties pc (.mat(c_mat), .cls(c_cls_raw), .dens(c_dens_raw), .flow(c_flow),
@@ -69,7 +37,7 @@ module phys_move_rules (
     wire [2:0] c_dens = c_solid_flush ? 3'd7       : c_dens_raw;
     wire [3:0] flow   = c_solid_flush ? 4'd15      : c_flow;
 
-    // ---- Properties of all ten neighbours ------------------------------------------------
+    // Properties of all ten neighbours
     wire [29:0] n_cls;     // neighbour k class at [3*(k-1) +: 3]
     wire [29:0] n_dens;
     genvar k;
@@ -92,7 +60,7 @@ module phys_move_rules (
     wire [2:0] l2_cls = n_cls[26:24];
     wire [2:0] r2_cls = n_cls[29:27];
 
-    // ---- Helper questions ------------------------------------------------------------------
+    // Helper questions
     // Can I fall into a cell with this class/density?
     function can_fall;
         input [2:0] cls;
@@ -115,7 +83,7 @@ module phys_move_rules (
 
     wire go_left_first = rnd[0];
 
-    // ---- Decide ------------------------------------------------------------------------------
+    // Decide
     always @* begin
         tgt = S_NONE;
         case (c_cls)
@@ -205,5 +173,3 @@ module phys_move_rules (
     end
 
 endmodule
-
-`default_nettype wire

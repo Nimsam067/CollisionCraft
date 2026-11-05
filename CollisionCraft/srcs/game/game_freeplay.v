@@ -1,25 +1,11 @@
-// =============================================================================
-//  game_freeplay.v  --  Sandbox mode with a limited supply of reagents
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 3  (Interactions & Game Logic)
+// Free play mode. Mix whatever you like, but you only get 15 releases and you
+// have to drain the beaker when it gets full. The left two digits on the 7 seg
+// show releases left and the right two show how many different reactions you
+// have found. HINT suggests a reaction you haven't found yet.
 //
-//  Experiment however you like, with two limits that keep it interesting:
-//
-//   * 15 RELEASES. Every press of OK that sends material into the beaker
-//     uses one. The left two 7-seg digits count them down.
-//   * BEAKER CAPACITY. When the beaker is full you must drain it (DOWN)
-//     before you can release again.
-//
-//  The right two 7-seg digits count your DISCOVERIES (different reactions
-//  seen). When the releases run out, the lab "closes" and shows your score.
-//
-//  Buttons:  OK = release    DOWN = drain
-//            HINT = suggest a reaction you have NOT found yet
-//                   (press again for a different one)
-//  (MENU, UP/slow-motion and restarting are handled by game_fsm.v)
-// =============================================================================
+// Owner: Arnav (Interactions & Game Logic)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module game_freeplay (
     input  wire        clk,
@@ -45,7 +31,7 @@ module game_freeplay (
     output reg  [15:0] header_col,
     output reg         msg_show,
     output reg  [79:0] msg0, msg1, msg2, msg3,
-    // 7-segment
+    // 7 segment
     output wire [4:0]  sg3, sg2, sg1, sg0,
     output wire [3:0]  dp
 );
@@ -57,7 +43,7 @@ module game_freeplay (
     reg [8:0]  end_timer;       // wait 5 s after the last release before closing
     reg [7:0]  blink;
 
-    // ---- hint search state ---------------------------------------------------------------
+    // hint search state
     reg        searching;       // walking through the reactions looking for an unfound one
     reg [5:0]  probe;           // reaction currently being checked
     reg [5:0]  tries;           // how many we have checked (stop after all of them)
@@ -65,7 +51,7 @@ module game_freeplay (
     reg [7:0]  hint_timer;      // frames the hint stays on screen
     reg        all_found;       // nothing left to suggest!
 
-    // next reaction to check, wrapping 37 -> 1
+    // next reaction to check, wrapping 37 to 1
     wire [5:0] probe_next = (probe >= `RX_TOTAL) ? 6'd1 : probe + 6'd1;
 
     wire [79:0] hint0, hint1;
@@ -109,7 +95,7 @@ module game_freeplay (
                     tries     <= 6'd0;
                 end
 
-                // one reaction checked per clock (37 clocks at most - instant to a human)
+                // one reaction checked per clock (37 clocks at most, instant to a human)
                 if (searching) begin
                     probe <= probe_next;
                     tries <= tries + 6'd1;
@@ -136,11 +122,11 @@ module game_freeplay (
         end
     end
 
-    // ---- Number helpers -------------------------------------------------------------------------
+    // Number helpers
     wire [3:0] left_t  = left / 5'd10,       left_o  = left % 5'd10;
     wire [3:0] disc_t  = disc_count / 6'd10, disc_o  = disc_count % 6'd10;
 
-    // 7-seg: "15.07" = 15 releases left, 7 discoveries
+    // 7 seg: "15.07" = 15 releases left, 7 discoveries
     assign sg3 = {1'b0, left_t};
     assign sg2 = {1'b0, left_o};
     assign sg1 = {1'b0, disc_t};
@@ -183,5 +169,3 @@ module game_freeplay (
     end
 
 endmodule
-
-`default_nettype wire

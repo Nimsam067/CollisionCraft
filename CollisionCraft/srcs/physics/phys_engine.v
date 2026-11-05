@@ -1,40 +1,14 @@
-// =============================================================================
-//  phys_engine.v  --  The falling-sand physics engine (one per screen)
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 2  (Physics Engine)
+// The falling sand physics engine, one per screen. Each step (120 per second) it
+// adds new grains at the spawn points, then goes through every cell from the
+// bottom row up. For each grain it checks, in order, whether it changes on its
+// own (rxn_self), reacts with a neighbour (rxn_table) or moves
+// (phys_move_rules). The parity bit in each cell stops a grain being moved twice
+// in one step. clear_req wipes the grid, and age_req ages the order tags before
+// a new release into JA.
 //
-//  HOW A PHYSICS STEP WORKS (120 times a second)
-//  ---------------------------------------------
-//   1. INJECT  : new grains are added at the spawn points (the top of a
-//                funnel). Sources are the pour emitter (JB/JC) or the
-//                transfer pipes from JB/JC (JA).
-//   2. SWEEP   : every cell is visited once, from the BOTTOM row up to the
-//                top. Visiting bottom-up means a falling grain moves into a
-//                row we've already finished, so it only falls one cell per
-//                step. The left/right direction alternates every step so
-//                piles don't lean to one side.
-//   3. For each non-empty cell we read its 10 neighbours from RAM, then in
-//      ONE clock cycle decide (in priority order):
-//        a. does it change by itself?      (rxn_self: fire burns out...)
-//        b. does it react with a neighbour? (rxn_table, Person 3)
-//        c. does it move?                  (phys_move_rules)
-//      and write back at most two cells.
-//
-//  The "parity" bit in every cell stops a grain from being moved twice in
-//  one step (e.g. a bubble rising into the row we're about to visit).
-//
-//  CYCLE BUDGET: an empty cell costs 2-3 cycles, a busy one about 15.
-//  A full screen is roughly 60k cycles = 2.4 ms at 25 MHz, well inside the
-//  8.3 ms between steps.
-//
-//  SPECIAL STEPS
-//    clear_req : wipe the whole grid (6144 cycles)
-//    age_req   : the next step only ages the order TAGs (2->1->0). The game
-//                asks for this right before a new release into JA, so that
-//                what was already in the beaker counts as "first".
-// =============================================================================
+// Owner: Aadi (Physics Engine)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module phys_engine #(
     parameter        CHAMBER   = 0,               // 0 = reagent (JB/JC), 1 = beaker (JA)
@@ -44,7 +18,7 @@ module phys_engine #(
     input  wire        clk,
     input  wire        rst,
 
-    // ---- control ------------------------------------------------------------------
+    // control
     input  wire        step_req,        // pulse: run one physics step
     input  wire        clear_req,       // pulse: wipe the grid
     input  wire        age_req,         // pulse: next step ages the order tags
@@ -55,7 +29,7 @@ module phys_engine #(
     input  wire        trapdoor_open,   // geometry: reagent trapdoor
     input  wire        drain_open,      // geometry: beaker drain
 
-    // ---- grain sources (spawn points) ---------------------------------------------
+    // grain sources (spawn points)
     input  wire        src0_valid,
     input  wire [5:0]  src0_mat,
     input  wire [5:0]  src0_x0,         // left edge of the spawn area
@@ -69,13 +43,13 @@ module phys_engine #(
     input  wire [6:0]  src1_y,
     output reg         src1_pop,
 
-    // ---- grid RAM, port A ------------------------------------------------------------
+    // grid RAM, port A
     output reg  [12:0] ram_addr,
     output reg  [15:0] ram_wdata,
     output reg         ram_we,
     input  wire [15:0] ram_rdata,
 
-    // ---- events for other modules ------------------------------------------------------
+    // events for other modules
     output reg         exit_valid,      // a grain fell out of the bottom into the pipe
     output reg  [5:0]  exit_mat,
     output reg         rxn_valid,       // a reaction just happened
@@ -88,9 +62,7 @@ module phys_engine #(
     output wire        busy
 );
 
-    // =================================================================================
-    //  State machine
-    // =================================================================================
+    // State machine
     localparam [3:0] S_IDLE    = 4'd0,
                      S_CLEAR   = 4'd1,
                      S_INJ_RD  = 4'd2,
@@ -107,7 +79,7 @@ module phys_engine #(
     assign busy = (state != S_IDLE);
 
     reg        cur_par;          // parity of the current step
-    reg        dir;              // 0 = sweep left-to-right, 1 = right-to-left
+    reg        dir;              // 0 = sweep left to right, 1 = right to left
     reg        age_mode;         // this step only ages tags
     reg        step_pending, clear_pending, age_pending;
 
@@ -135,16 +107,12 @@ module phys_engine #(
     reg [12:0] wa_addr, wb_addr;
     reg [15:0] wa_data, wb_data;
 
-    // =================================================================================
-    //  Randomness
-    // =================================================================================
+    // Randomness
     wire [31:0] rnd;
     phys_lfsr #(.SEED(SEED)) lfsr (.clk(clk), .rnd(rnd));
 
-    // =================================================================================
-    //  Neighbour offsets
-    // =================================================================================
-    //  slot:  0=C 1=D 2=DL 3=DR 4=L 5=R 6=U 7=UL 8=UR 9=L2 10=R2
+    // Neighbour offsets
+    // slot:  0=C 1=D 2=DL 3=DR 4=L 5=R 6=U 7=UL 8=UR 9=L2 10=R2
     function signed [3:0] off_x;
         input [3:0] s;
         case (s)
@@ -174,16 +142,14 @@ module phys_engine #(
         begin
             ox = off_x(s);
             oy = off_y(s);
-            ax = {1'b0, cx} + {{3{ox[3]}}, ox};   // sign-extended add
+            ax = {1'b0, cx} + {{3{ox[3]}}, ox};   // sign extended add
             ay = cy         + {{3{oy[3]}}, oy};
             slot_addr = {ay, ax[5:0]};
         end
     endfunction
 
-    // =================================================================================
-    //  The "probe": the one cell we are asking about this cycle
-    //  (either reading it from RAM, or knowing it is a wall/sink without reading)
-    // =================================================================================
+    // The "probe": the one cell we are asking about this cycle
+    // (either reading it from RAM, or knowing it is a wall/sink without reading)
     reg  signed [8:0] probe_x, probe_y;
     wire [5:0] inj_mask  = (inj_src ? src1_wlog : src0_wlog) == 2'd0 ? 6'd0 :
                            (inj_src ? src1_wlog : src0_wlog) == 2'd1 ? 6'd1 :
@@ -222,9 +188,7 @@ module phys_engine #(
     wire       probe_ovr     = probe_oob_side || probe_below || geo_wall;
     wire [5:0] probe_ovr_mat = (probe_below && !probe_oob_side && sink_open) ? `M_SINK : `M_WALL;
 
-    // =================================================================================
-    //  Unpack the slots for the decision logic
-    // =================================================================================
+    // Unpack the slots for the decision logic
     wire [15:0] c_cell  = slots[15:0];
     wire [5:0]  c_mat   = c_cell[`C_MAT];
     wire [3:0]  c_life  = c_cell[`C_LIFE];
@@ -239,7 +203,7 @@ module phys_engine #(
         end
     endgenerate
 
-    // ---- (a) self change -------------------------------------------------------------------
+    // (a) self change
     wire       s_trans;
     wire [5:0] s_mat;
     wire [3:0] s_life;
@@ -248,7 +212,7 @@ module phys_engine #(
         .transform(s_trans), .new_mat(s_mat), .new_life(s_life)
     );
 
-    // ---- (b) reaction with one random neighbour (down, left, right or up) ------------------
+    // (b) reaction with one random neighbour (down, left, right or up)
     reg [3:0] rx_slot;
     always @* begin
         case (rnd[5:4])
@@ -284,22 +248,20 @@ module phys_engine #(
     mat_properties p_oc (.mat(r_oc), .cls(), .dens(), .flow(), .init_life(oc_init), .decay(), .flammable(), .glows());
     mat_properties p_on (.mat(r_on), .cls(), .dens(), .flow(), .init_life(on_init), .decay(), .flammable(), .glows());
 
-    // ---- (c) movement ---------------------------------------------------------------------------
+    // (c) movement
     wire [3:0] mv_slot;
     phys_move_rules mover (
         .c_mat(c_mat), .nb_mat(nb_mats), .flush(flush), .rnd(rnd[13:6]), .tgt(mv_slot)
     );
     wire [15:0] t_cell = slots[16*mv_slot +: 16];
 
-    // ---- starting LIFE for an injected grain --------------------------------------------------
+    // starting LIFE for an injected grain
     wire [5:0] inj_mat = inj_src ? src1_mat : src0_mat;
     wire [3:0] inj_life;
     mat_properties p_inj (.mat(inj_mat), .cls(), .dens(), .flow(), .init_life(inj_life), .decay(), .flammable(), .glows());
     wire [1:0] inj_tag = (CHAMBER == 1) ? `TAG_NEW : `TAG_OLD;
 
-    // =================================================================================
-    //  RAM port driving
-    // =================================================================================
+    // RAM port driving
     always @* begin
         ram_we    = 1'b0;
         ram_wdata = 16'd0;
@@ -332,11 +294,9 @@ module phys_engine #(
         make_cell = (mat == `M_EMPTY) ? 16'd0 : {tag, par, shade, life, mat};
     endfunction
 
-    // =================================================================================
-    //  Sequential logic
-    // =================================================================================
+    // Sequential logic
     always @(posedge clk) begin
-        // one-cycle pulses default to 0
+        // one cycle pulses default to 0
         src0_pop    <= 1'b0;  src1_pop  <= 1'b0;
         exit_valid  <= 1'b0;  rxn_valid <= 1'b0;
         visit_valid <= 1'b0;  step_done <= 1'b0;
@@ -356,7 +316,6 @@ module phys_engine #(
         end else begin
             case (state)
 
-                // ---------------------------------------------------------------
                 S_IDLE: begin
                     if (clear_pending || clear_req) begin
                         clr_addr <= 13'd0;
@@ -377,7 +336,6 @@ module phys_engine #(
                     end
                 end
 
-                // ---------------------------------------------------------------
                 S_CLEAR: begin
                     if (clr_addr == 13'd6143) begin
                         clear_pending <= 1'b0;
@@ -387,8 +345,7 @@ module phys_engine #(
                         clr_addr <= clr_addr + 13'd1;
                 end
 
-                // ---------------------------------------------------------------
-                //  INJECTION: try to place a grain at a random spot of the spawn area
+                // INJECTION: try to place a grain at a random spot of the spawn area
                 S_INJ_RD: begin
                     if ((inj_src ? src1_valid : src0_valid)) begin
                         inj_x       <= inj_new_x;
@@ -424,8 +381,7 @@ module phys_engine #(
                     end
                 end
 
-                // ---------------------------------------------------------------
-                //  SWEEP: request the centre cell
+                // SWEEP: request the centre cell
                 S_C_ISSUE: begin
                     if (probe_ovr) begin
                         state <= S_NEXT;                 // walls are never processed
@@ -438,13 +394,12 @@ module phys_engine #(
                     end
                 end
 
-                // ---------------------------------------------------------------
-                //  Capture one slot per cycle while requesting the next one
+                // Capture one slot per cycle while requesting the next one
                 S_NB: begin
                     slots[16*pend_slot +: 16] <= arriving;
 
                     if (pend_slot == 4'd0) begin
-                        // ---- the centre cell has arrived: is it worth processing? ----
+                        // the centre cell has arrived: is it worth processing?
                         if (arriving[`C_MAT] == `M_EMPTY) begin
                             state <= S_NEXT;
                         end else begin
@@ -493,8 +448,7 @@ module phys_engine #(
                     end
                 end
 
-                // ---------------------------------------------------------------
-                //  DECIDE: self change > reaction > movement > life tick
+                // DECIDE: self change > reaction > movement > life tick
                 S_DECIDE: begin
                     wa_en <= 1'b0;
                     wb_en <= 1'b0;
@@ -549,8 +503,7 @@ module phys_engine #(
                 S_WA: state <= wb_en ? S_WB : S_NEXT;
                 S_WB: state <= S_NEXT;
 
-                // ---------------------------------------------------------------
-                //  Move to the next cell (bottom row first, alternating direction)
+                // Move to the next cell (bottom row first, alternating direction)
                 S_NEXT: begin
                     wa_en <= 1'b0;
                     wb_en <= 1'b0;
@@ -586,5 +539,3 @@ module phys_engine #(
     end
 
 endmodule
-
-`default_nettype wire

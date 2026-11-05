@@ -1,25 +1,12 @@
-// =============================================================================
-//  game_challenge.v  --  "Make this material!" puzzle mode
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 3  (Interactions & Game Logic)
+// Challenge mode. Each level asks you to make a target material in the beaker
+// before the 90 second timer runs out. You get 1 to 3 stars depending on how
+// many releases you used compared to the level's par. HINT shows a hint but
+// costs 10 seconds. Restarting from the pause menu takes you back to the start
+// of the current level, not level 1.
 //
-//  For each level:
-//
-//    INTRO   "LEVEL 3 / MAKE: / OBSIDIAN / C = START"       7-seg: L  3
-//    PLAY    90-second countdown, header shows the target,  7-seg: 3-75
-//            OK = release, DOWN = drain, HINT = hint (costs 10 s)
-//    WIN     stars depend on how many releases you used     7-seg: PASS
-//            (par = 3 stars, par+1 = 2 stars, more = 1)
-//    FAIL    time ran out                                   7-seg: FAIL
-//    DONE    after the last level                           7-seg: donE
-//
-//  The MENU button's pause pop-up is handled by game_fsm.v. Its RESTART
-//  option pulses `restart`, which sends you back to the start of the
-//  CURRENT level (not level 1). While paused, game_fsm stops anim_tick
-//  reaching this module, so the countdown freezes too.
-// =============================================================================
+// Owner: Arnav (Interactions & Game Logic)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module game_challenge (
     input  wire        clk,
@@ -44,7 +31,7 @@ module game_challenge (
     output reg  [15:0] header_col,
     output reg         msg_show,
     output reg  [79:0] msg0, msg1, msg2, msg3,
-    // 7-segment
+    // 7 segment
     output reg  [4:0]  sg3, sg2, sg1, sg0,
     output reg  [3:0]  dp
 );
@@ -65,7 +52,7 @@ module game_challenge (
 
     assign allow_pour = (phase == C_PLAY);
 
-    // ---- Level data ------------------------------------------------------------------------------
+    // Level data
     wire [12:0] goal;
     wire [2:0]  par;
     wire [79:0] hint0, hint1;
@@ -75,7 +62,7 @@ module game_challenge (
     wire [79:0] tname;
     mat_names names (.mat(target_mat), .name(tname), .code3(), .desc(), .sig_color());
 
-    // ---- Game flow -------------------------------------------------------------------------------
+    // Game flow
     always @(posedge clk) begin
         want_release <= 1'b0;
         want_drain   <= 1'b0;
@@ -93,7 +80,7 @@ module game_challenge (
             blink      <= 8'd0;
             clear_lab  <= enter;
         end else if (restart) begin
-            // pause menu -> RESTART: back to this level's intro with a clean lab
+            // pause menu RESTART: back to this level's intro with a clean lab
             phase      <= C_INTRO;
             hint_timer <= 8'd0;
             clear_lab  <= 1'b1;
@@ -170,7 +157,7 @@ module game_challenge (
         end
     end
 
-    // ---- Display -----------------------------------------------------------------------------------
+    // Display
     wire [4:0] lvl_disp = (level == 4'd9) ? `SG_A : {1'b0, level + 4'd1};   // 1..9, then A
     wire [7:0] lvl_ascii_t = (level == 4'd9) ? "1" : " ";
     wire [7:0] lvl_ascii_o = (level == 4'd9) ? "0" : (8'd49 + {4'd0, level});
@@ -231,6 +218,3 @@ module game_challenge (
     end
 
 endmodule
-
-`default_nettype wire
-

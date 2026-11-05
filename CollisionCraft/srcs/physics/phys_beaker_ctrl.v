@@ -1,14 +1,10 @@
-// =============================================================================
-//  phys_beaker_ctrl.v  --  Drain valve of the reaction beaker (JA)
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 2  (Physics Engine)
+// Drain for the reaction beaker (JA). Pressing DOWN opens the drain, everything
+// falls out (flush is on so solids fall too), and it closes again once the
+// beaker has been empty for two steps.
 //
-//  Press DOWN: the drain at the bottom of the beaker opens, everything
-//  (including solid stone and glass, thanks to "flush") falls out, and the
-//  drain closes again once the beaker has been empty for two steps.
-// =============================================================================
+// Owner: Aadi (Physics Engine)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module phys_beaker_ctrl (
     input  wire        clk,
@@ -49,5 +45,3 @@ module phys_beaker_ctrl (
     end
 
 endmodule
-
-`default_nettype wire

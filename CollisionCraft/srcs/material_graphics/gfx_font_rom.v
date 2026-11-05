@@ -1,19 +1,9 @@
-// =============================================================================
-//  gfx_font_rom.v  --  5x7 pixel font
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 1  (Materials, Graphics & Controls)
+// 5x7 font. Takes an ASCII character and a row (0 is the top) and returns the 5
+// pixels of that row, with bit 4 as the leftmost pixel. Lowercase is drawn as
+// uppercase, and a few symbols are changed for the game: '~' is a down arrow,
+// '^' an up arrow, '*' a star and '#' a solid block.
 //
-//  Give it an ASCII character and a row number (0 = top, 6 = bottom) and it
-//  returns the 5 pixels of that row. Bit 4 is the LEFTMOST pixel.
-//
-//  Lower-case letters are drawn as upper-case. A few symbols are redefined
-//  for the game's UI:  '~' = down arrow,  '^' = up arrow,  '*' = star,
-//  '#' = solid block.
-//
-//  Each glyph has its picture drawn in the comment next to it, so you can
-//  edit a letter just by changing the 1s and 0s.
-// =============================================================================
-`default_nettype none
+// Owner: Zi Le (Materials, Graphics & Controls)
 
 module gfx_font_rom (
     input  wire [7:0] ch,     // ASCII code
@@ -98,5 +88,3 @@ module gfx_font_rom (
     end
 
 endmodule
-
-`default_nettype wire

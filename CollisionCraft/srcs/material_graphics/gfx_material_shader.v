@@ -1,28 +1,12 @@
-// =============================================================================
-//  gfx_material_shader.v  --  How every material LOOKS
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 1  (Materials, Graphics & Controls)
+// Works out the colour of each pixel from the material in that cell. It uses the
+// grain's random shade, some cheap noise for moving effects (lava, water
+// ripples, bubbles), a highlight on liquid surfaces, and an orange glow on hot
+// solids that fades as they cool. Gases and glass are see through. Output is
+// RGB565.
 //
-//  Called once per pixel. Input: the cell under the pixel (plus the cell
-//  directly above it, so we can light up liquid surfaces) and an animation
-//  frame counter. Output: an RGB565 colour and how opaque it is.
-//
-//  The tricks that make it look alive instead of flat:
-//   * SHADE  - every grain was born with a random shade 0..7, so piles are
-//              speckled like real sand.
-//   * NOISE  - cheap hash functions of (x, y, frame) give moving patterns:
-//              lava hot-spots that crawl, water caustics that ripple,
-//              bubbles rising through acid, glints on metal.
-//   * SURFACE- if the cell above is air, the pixel is a surface pixel and
-//              gets a bright highlight (water) or a rainbow sheen (oil).
-//   * GLOW   - hot solids (fresh obsidian, glass, ingots...) blend toward
-//              orange by their LIFE value, so they visibly cool down.
-//   * ALPHA  - gases and glass are drawn half-transparent.
-//
-//  Colour values: red 0..31, green 0..63, blue 0..31 (RGB565).
-// =============================================================================
+// Owner: Zi Le (Materials, Graphics & Controls)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module gfx_material_shader (
     input  wire [15:0] cell_in,
@@ -34,7 +18,7 @@ module gfx_material_shader (
     output reg  [1:0]  alpha     // 0 = invisible, 1 = 50 % blend, 3 = solid
 );
 
-    // ---- Unpack the cell ---------------------------------------------------------
+    // Unpack the cell
     wire [5:0] mat   = cell_in[`C_MAT];
     wire [3:0] life  = cell_in[`C_LIFE];
     wire [2:0] shade = cell_in[`C_SHADE];
@@ -45,7 +29,7 @@ module gfx_material_shader (
                    (above == `M_FUMES) || (above == `M_HYDROGEN) || (above == `M_FIRE) ||
                    (above == `M_SPATTER);
 
-    // ---- Noise sources -------------------------------------------------------------
+    // Noise sources
     // h_still : fixed per pixel (sparkles that stay in place)
     // h_slow  : changes every 8 frames, on a 2x2 grid (lava crawl)
     // h_fast  : changes every frame (fire flicker)
@@ -65,7 +49,7 @@ module gfx_material_shader (
                  (mat == `M_SANDSTONE) || (mat == `M_INGOT) || (mat == `M_BRICK) ||
                  (mat == `M_POTTERY) || (mat == `M_SLAG) || (mat == `M_BEADS);
 
-    // ---- Main colour selection --------------------------------------------------------
+    // Main colour selection
     integer r, g, b;          // working colour (may overflow, clamped at the end)
     integer heat;
 
@@ -85,7 +69,7 @@ module gfx_material_shader (
                 r = 27 + var_s; g = 46 + 2*var_s; b = 13 + var_s;
             end
             `M_LAVA: begin
-                if      (h_slow < 8'd40)  begin r = 31; g = 52; b = 8;  end  // yellow hot-spot
+                if      (h_slow < 8'd40)  begin r = 31; g = 52; b = 8;  end  // yellow hotspot
                 else if (h_slow < 8'd150) begin r = 31; g = 24; b = 0;  end  // orange
                 else                      begin r = 22; g = 6;  b = 0;  end  // dark crust
                 if (surface && frame[4] ^ h_still[0]) begin r = 31; g = 40; b = 4; end
@@ -135,7 +119,7 @@ module gfx_material_shader (
 
             // ============================ fire ============================
             `M_FIRE: begin
-                if      (life >= 4'd9) begin r = 31; g = 56; b = 12; end      // white-yellow core
+                if      (life >= 4'd9) begin r = 31; g = 56; b = 12; end      // white yellow core
                 else if (life >= 4'd5) begin r = 31; g = 32; b = 0;  end      // orange
                 else                   begin r = 26; g = 10; b = 0;  end      // dying red
                 if (h_fast[1:0] == 2'd0) begin g = g + 8; end                 // flicker
@@ -211,7 +195,7 @@ module gfx_material_shader (
                 if (surface)        begin r = 18; g = 60; b = 28; end
             end
             `M_MOLTEN: begin
-                if (h_slow < 8'd90) begin r = 31; g = 62; b = 22; end         // white-hot
+                if (h_slow < 8'd90) begin r = 31; g = 62; b = 22; end         // white hot
                 else                begin r = 31; g = 44; b = 4;  end
             end
             `M_SOLUTION: begin
@@ -234,7 +218,7 @@ module gfx_material_shader (
             end
         endcase
 
-        // ---- Glow: hot solids blend toward orange by their LIFE value -------------
+        // Glow: hot solids blend toward orange by their LIFE value
         if (glows && life != 4'd0) begin
             heat = life;                                   // 1..15
             r = (r * (16 - heat) + 31 * heat) >>> 4;
@@ -243,7 +227,7 @@ module gfx_material_shader (
             alpha = 2'd3;
         end
 
-        // ---- Clamp to the legal RGB565 range and pack -----------------------------
+        // Clamp to the legal RGB565 range and pack
         if (r < 0) r = 0;  if (r > 31) r = 31;
         if (g < 0) g = 0;  if (g > 63) g = 63;
         if (b < 0) b = 0;  if (b > 31) b = 31;
@@ -251,5 +235,3 @@ module gfx_material_shader (
     end
 
 endmodule
-
-`default_nettype wire

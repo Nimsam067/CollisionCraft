@@ -1,25 +1,14 @@
-// =============================================================================
-//  game_levels.v  --  The challenge levels
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 3  (Interactions & Game Logic)
+// Data for the 10 challenge levels: which material to make, how many grains of
+// it are needed (goal), the par number of releases for 3 stars, and two lines of
+// hint text. To add a level, add a case here and bump LEVEL_COUNT in
+// game_challenge.v.
 //
-//  Each level asks the player to MAKE a material. You win when at least
-//  `goal` grains of it exist in the beaker at the same moment.
-//  `par` is the number of releases a perfect player needs (3 stars).
-//
-//  The levels are ordered so each teaches something:
-//    1-2  simple pairs
-//    3-4  ORDER MATTERS: same ingredients as each other, opposite order
-//    5-8  more pairs and orders
-//    9-10 multi-step chains (make an intermediate, then react it)
-//
-//  To add a level: add a case, bump LEVEL_COUNT in game_challenge.v.
-// =============================================================================
+// Owner: Arnav (Interactions & Game Logic)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module game_levels (
-    input  wire [3:0]  level,          // 0-based
+    input  wire [3:0]  level,          // zero based
     output reg  [5:0]  target_mat,
     output reg  [12:0] goal,
     output reg  [2:0]  par,
@@ -44,5 +33,3 @@ module game_levels (
     end
 
 endmodule
-
-`default_nettype wire

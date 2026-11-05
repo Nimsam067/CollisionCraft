@@ -1,19 +1,10 @@
-// =============================================================================
-//  ui_seven_seg.v  --  Drives the 4-digit 7-segment display
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 1  (Materials, Graphics & Controls)
+// Drives the 4 digit 7 segment display. The digits share segment wires, so we
+// light them one at a time fast enough that they all look on. Inputs are glyph
+// codes (SG_* in cc_defines.vh). Segments are active low.
 //
-//  The four digits share their segment wires, so we light one digit at a
-//  time, very fast (about 1.5 kHz per digit), and your eye sees all four.
-//
-//  Inputs are glyph CODES (SG_* in cc_defines.vh), not raw segments, so the
-//  game logic can just say "show P L A Y" or "show 1 5 . 0 7".
-//
-//  Basys3 wiring: seg[0] = segment a ... seg[6] = segment g, everything
-//  active-LOW (0 = lit). an[3] is the leftmost digit.
-// =============================================================================
+// Owner: Zi Le (Materials, Graphics & Controls)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module ui_seven_seg (
     input  wire       clk,          // 25 MHz
@@ -27,7 +18,7 @@ module ui_seven_seg (
     output reg  [3:0] an
 );
 
-    // Glyph code -> segments {g,f,e,d,c,b,a}, active low
+    // Glyph code to segments {g,f,e,d,c,b,a}, active low
     function [6:0] decode;
         input [4:0] code;
         case (code)
@@ -64,7 +55,7 @@ module ui_seven_seg (
         endcase
     endfunction
 
-    // 16-bit counter: the top two bits pick which digit is lit
+    // 16 bit counter: the top two bits pick which digit is lit
     reg [15:0] scan = 16'd0;
     always @(posedge clk) scan <= scan + 16'd1;
 
@@ -78,5 +69,3 @@ module ui_seven_seg (
     end
 
 endmodule
-
-`default_nettype wire

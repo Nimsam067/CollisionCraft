@@ -1,38 +1,14 @@
-// =============================================================================
-//  game_tutorial.v  --  Guided tour of the lab
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 3  (Interactions & Game Logic)
+// Tutorial mode. Part 1 goes through the five buttons one at a time, part 2 goes
+// through the lab (picking, discarding, filling, releasing, draining and making
+// obsidian). Each step waits until the player does the action, and HINT skips a
+// step.
 //
-//  Each step shows instructions in the message box on JA and WAITS until the
-//  player actually does the thing. The HINT button skips a step at any time.
+// pad_hi picks which button blinks in the button picture (shared with
+// gfx_reaction_screen.v): 0 none, 1 OK, 2 UP, 3 DOWN, 4 MENU, 5 HINT.
 //
-//  PART 1 - THE BUTTON TOUR
-//  A picture of the five buttons is drawn at the bottom of JA. Each page
-//  makes one button blink, explains it, and waits for you to press it.
-//     0 WELCOME    press OK
-//     1 CONTROLS   all five buttons shown, press OK
-//     2 OK         centre button: select / release
-//     3 UP         move up in menus, SLOW MOTION in the lab
-//     4 DOWN       move down in menus, DRAIN the beaker in the lab
-//     5 MENU       pause menu: resume / restart / quit
-//     6 HINT       hints (and skipping tutorial steps)
-//
-//  PART 2 - THE LAB
-//     7 PICK       flip up a switch, wait until the chamber is READY
-//     8 DISCARD    flip it down, watch the trapdoor dump it
-//     9 FILL       fill both chambers
-//    10 RELEASE    press OK, both pour into the beaker
-//    11 WATCH      4 seconds to enjoy the reaction (try slow motion!)
-//    12 ORDER      explain that order matters, press OK
-//    13 DRAIN      press DOWN to empty the beaker
-//    14 RECIPE     make OBSIDIAN: water first, then lava
-//    15 DONE       press OK to go back to the title screen
-//
-//  Button picture codes (pad_hi), shared with gfx_reaction_screen.v:
-//    0 = none blinking   1 = OK   2 = UP   3 = DOWN   4 = MENU   5 = HINT
-// =============================================================================
+// Owner: Arnav (Interactions & Game Logic)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module game_tutorial (
     input  wire        clk,
@@ -62,9 +38,9 @@ module game_tutorial (
     output reg  [15:0] header_col,
     output reg         msg_show,
     output reg  [79:0] msg0, msg1, msg2, msg3,
-    output wire        pad_show,        // draw the five-button picture
+    output wire        pad_show,        // draw the five button picture
     output reg  [2:0]  pad_hi,          // which button in the picture blinks
-    // 7-segment
+    // 7 segment
     output wire [4:0]  sg3, sg2, sg1, sg0,
     output wire [3:0]  dp
 );
@@ -88,7 +64,7 @@ module game_tutorial (
     assign tour       = (step >= T_PAD) && (step <= T_K_HINT);
     assign pad_show   = tour;
 
-    // ---- 7-segment: "t 07" = tutorial step 7 ----------------------------------------------------
+    // 7 segment: "t 07" = tutorial step 7
     wire [3:0] step_t = (step >= 4'd10) ? 4'd1 : 4'd0;
     wire [3:0] step_o = (step >= 4'd10) ? step - 4'd10 : step;
     assign sg3 = `SG_T;
@@ -97,7 +73,7 @@ module game_tutorial (
     assign sg0 = {1'b0, step_o};
     assign dp  = 4'b0000;
 
-    // ---- Step logic ------------------------------------------------------------------------------
+    // Step logic
     wire jb_ready   = (jb_state == `CH_READY);
     wire jc_ready   = (jc_state == `CH_READY);
     wire both_empty = (jb_state == `CH_EMPTY) && (jc_state == `CH_EMPTY);
@@ -135,7 +111,7 @@ module game_tutorial (
                 go_next;
             end else begin
                 case (step)
-                    // ------------------ part 1: the buttons ------------------
+                    // part 1: the buttons
                     T_WELCOME: if (btn_ok)   go_next;
                     T_PAD:     if (btn_ok)   go_next;
                     T_K_OK:    if (btn_ok)   go_next;
@@ -144,7 +120,7 @@ module game_tutorial (
                     T_K_MENU:  if (btn_menu) go_next;
                     // T_K_HINT is passed by the HINT press above
 
-                    // ------------------ part 2: the lab ----------------------
+                    // part 2: the lab
                     T_PICK:    if (jb_ready || jc_ready) go_next;
 
                     T_DISCARD: begin
@@ -187,7 +163,7 @@ module game_tutorial (
         end
     end
 
-    // ---- What to show -----------------------------------------------------------------------------
+    // What to show
     // colours
     localparam [15:0] C_GOLD  = {5'd31, 6'd48, 5'd4};
     localparam [15:0] C_WHITE = {5'd31, 6'd63, 5'd31};
@@ -282,6 +258,3 @@ module game_tutorial (
     end
 
 endmodule
-
-`default_nettype wire
-

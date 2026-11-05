@@ -1,19 +1,9 @@
-// =============================================================================
-//  phys_transfer_fifo.v  --  The "pipe" from a reagent chamber down to JA
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 2  (Physics Engine)
+// FIFO that carries grains from a reagent chamber down to the beaker (JA).
+// Grains leaving the bottom of JB or JC are pushed in and come out at the top of
+// the matching funnel in JA. dout always shows the oldest grain, and almost_full
+// tells the chamber to keep its valve shut for a moment.
 //
-//  When a chamber is released, every grain that falls out of the bottom of
-//  JB (or JC) is pushed into this queue. The JA engine pops grains out at
-//  the top of the matching funnel. First in, first out, so the bottom layer
-//  of the chamber is the first thing to arrive in the beaker - just like a
-//  real tap at the bottom of a flask.
-//
-//  dout always shows the oldest grain (first-word-fall-through), so the
-//  engine can read the material and pop in the same step.
-//  almost_full tells the source engine to keep its floor shut for a moment.
-// =============================================================================
-`default_nettype none
+// Owner: Aadi (Physics Engine)
 
 module phys_transfer_fifo #(
     parameter DEPTH_LOG2 = 9                 // 512 grains
@@ -62,5 +52,3 @@ module phys_transfer_fifo #(
     end
 
 endmodule
-
-`default_nettype wire

@@ -1,21 +1,10 @@
-// =============================================================================
-//  mat_names.v  --  Names, labels and signature colours for every material
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 1  (Materials, Graphics & Controls)
+// Text and colours for every material: the full name, a 3 letter code for the
+// recipe line, a one word description and the colour used on its name card. All
+// strings are 10 characters padded with spaces.
 //
-//  Everything the player READS about a material comes from here:
-//
-//    name       up to 10 characters, e.g. "OBSIDIAN"  (used on banners/goals)
-//    code3      3-letter short code, e.g. "WAT"       (used in recipe line)
-//    desc       one-word description, e.g. "FLAMMABLE"
-//    sig_color  the material's "brand" colour, used for the name card
-//
-//  Text format: every string is exactly 10 ASCII characters (80 bits),
-//  padded with spaces on the right. The text renderer automatically skips
-//  the trailing spaces when it centres a line.
-// =============================================================================
+// Owner: Zi Le (Materials, Graphics & Controls)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module mat_names (
     input  wire [5:0]  mat,
@@ -25,7 +14,7 @@ module mat_names (
     output reg  [15:0] sig_color     // RGB565
 );
 
-    // Helper: pack an RGB565 colour from 5-bit red, 6-bit green, 5-bit blue
+    // Helper: pack an RGB565 colour from 5 bit red, 6 bit green, 5 bit blue
     function [15:0] rgb;
         input [4:0] r;
         input [5:0] g;
@@ -80,5 +69,3 @@ module mat_names (
     end
 
 endmodule
-
-`default_nettype wire

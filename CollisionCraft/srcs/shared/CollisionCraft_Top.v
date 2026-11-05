@@ -1,45 +1,18 @@
-// =============================================================================
-//  CollisionCraft_Top.v  --  TOP LEVEL: wires the whole lab together
-// -----------------------------------------------------------------------------
-//  OWNER: shared
+// Top level module that connects everything together.
 //
-//   SWITCHES                          SCREENS
-//   sw15..sw10  JB material (left)    JB  left reagent chamber
-//   sw9         (unused)              JC  right reagent chamber
-//   sw8, sw7    1-OLED test view      JA  reaction beaker + menus
-//   sw6         (unused)              (see SINGLE-OLED TEST MODE below)
-//   sw5..sw0    JC material (right)
-//     order on BOTH sides, left to right:  WATER SAND LAVA METAL ACID OIL
-//   The four LEDs above sw9..sw6 stay lit as a "barricade" between the sides.
+// Switches: sw15 to sw10 pick the JB material and sw5 to sw0 pick the JC
+// material (WATER SAND LAVA METAL ACID OIL from left to right). sw8 and sw7
+// select the single OLED test view.
 //
-//   BUTTONS - the board is held turned 90 degrees anticlockwise, so each
-//   button is named by where it sits from the PLAYER's point of view:
-//     board btnC  -> OK    : select / RELEASE ready chambers into the beaker
-//     board btnR  -> UP    : move up    (in the lab: SLOW MOTION on/off)
-//     board btnL  -> DOWN  : move down  (in the lab: DRAIN the beaker)
-//     board btnU  -> MENU  : pause pop-up (resume / restart / quit)
-//     board btnD  -> HINT  : hints (challenge, free play) / skip tutorial step
-//   To change which board button does what, edit "Buttons" below only.
+// The board is held turned 90 degrees anticlockwise, so the buttons are named
+// from the player's point of view: btnC is OK, btnR is UP, btnL is DOWN, btnU is
+// MENU and btnD is HINT. 
 //
-//  DATA FLOW (one arrow = one module boundary)
+// If a screen is upside down, its *_ROTATE value can be changed.
 //
-//   switches -> mat_switch_select -> phys_chamber_ctrl -> phys_emitter
-//                                                            |
-//                     phys_engine (JB) <---------------------+
-//                          |  grains falling out of the valve
-//                          v
-//                    phys_transfer_fifo  --> phys_engine (JA) <-> rxn_table
-//                                                 |                  rxn_self
-//                                                 v
-//                                            rxn_tracker --> game_fsm
-//                                                                |
-//   phys_grid_ram (x3) --> gfx_*_screen (x3) --> Oled_Display (x3)
-//
-//  >>> SCREEN ORIENTATION: if a screen is upside down on your board, change
-//      its *_ROTATE value below (0 <-> 1). Nothing else needs touching. <<<
-// =============================================================================
+// Owner: Shared
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module CollisionCraft_Top (
     input  wire        clk,          // 100 MHz
@@ -58,9 +31,7 @@ module CollisionCraft_Top (
     localparam JC_ROTATE = 1;
     localparam JA_ROTATE = 0;     // JA sits on the opposite edge of the board
 
-    // =================================================================================
-    //  Clocks, reset and timing ticks
-    // =================================================================================
+    // Clocks, reset and timing ticks
     wire clk_core, clk_oled, rst;
     clock_gen u_clocks (.clk100(clk), .clk_core(clk_core), .clk_oled(clk_oled), .rst_core(rst));
 
@@ -76,11 +47,9 @@ module CollisionCraft_Top (
             anim_cnt <= anim_cnt + 19'd1;
     end
 
-    // =================================================================================
-    //  Buttons  (Person 1)
-    //  Physical board button -> job. This is the ONLY place that knows which
-    //  physical button is which; everything else uses the job names.
-    // =================================================================================
+    // Buttons  (Zi Le)
+    // Maps each physical board button to a job. This is the ONLY place that knows which
+    // physical button is which; everything else uses the job names.
     wire ok_press, up_press, down_press, menu_press, hint_press;
     ui_debounce db_ok   (.clk(clk_core), .rst(rst), .btn_raw(btnC), .level(), .press(ok_press),   .hold());
     ui_debounce db_up   (.clk(clk_core), .rst(rst), .btn_raw(btnR), .level(), .press(up_press),   .hold());
@@ -88,9 +57,7 @@ module CollisionCraft_Top (
     ui_debounce db_menu (.clk(clk_core), .rst(rst), .btn_raw(btnU), .level(), .press(menu_press), .hold());
     ui_debounce db_hint (.clk(clk_core), .rst(rst), .btn_raw(btnD), .level(), .press(hint_press), .hold());
 
-    // =================================================================================
-    //  Signals shared between the sections
-    // =================================================================================
+    // Signals shared between the sections
     // game director outputs
     wire [1:0]  mode, menu_sel, pause_sel;
     wire        paused, slow_mo, pad_show;
@@ -118,13 +85,11 @@ module CollisionCraft_Top (
     wire jb_busy, jc_busy, ja_busy;
     phys_step_timer stepper (.clk(clk_core), .rst(rst), .slow(slow_mo),
                              .any_busy(jb_busy | jc_busy | ja_busy), .step(step_raw));
-    // while the pause pop-up is open the whole lab freezes
+    // while the pause popup is open the whole lab freezes
     wire step = step_raw & ~paused;
 
-    // =================================================================================
-    //  LEFT reagent chamber: JB
-    // =================================================================================
-    // Physical switches sw15..sw10 -> bit 0 (WATER) .. bit 5 (OIL)
+    // LEFT reagent chamber: JB
+    // Physical switches sw15..sw10 to bit 0 (WATER) .. bit 5 (OIL)
     wire [5:0] jb_sw = {sw[10], sw[11], sw[12], sw[13], sw[14], sw[15]};
     wire [1:0] jb_sel_state;  wire [5:0] jb_sel_mat, jb_led;
     wire [2:0] jb_state;      wire [5:0] jb_mat;
@@ -185,10 +150,8 @@ module CollisionCraft_Top (
         .pop(ja_pop0 & ~title), .dout(fifo_jb_dout), .empty(fifo_jb_empty), .almost_full(fifo_jb_afull)
     );
 
-    // =================================================================================
-    //  RIGHT reagent chamber: JC  (identical to JB)
-    // =================================================================================
-    // Physical switches sw5..sw0 -> bit 0 (WATER) .. bit 5 (OIL)
+    // RIGHT reagent chamber: JC  (identical to JB)
+    // Physical switches sw5..sw0 to bit 0 (WATER) .. bit 5 (OIL)
     wire [5:0] jc_sw = {sw[0], sw[1], sw[2], sw[3], sw[4], sw[5]};
     wire [1:0] jc_sel_state;  wire [5:0] jc_sel_mat, jc_led;
     wire [2:0] jc_state;      wire [5:0] jc_mat;
@@ -249,9 +212,7 @@ module CollisionCraft_Top (
         .pop(ja_pop1 & ~title), .dout(fifo_jc_dout), .empty(fifo_jc_empty), .almost_full(fifo_jc_afull)
     );
 
-    // =================================================================================
-    //  Reaction beaker: JA
-    // =================================================================================
+    // Reaction beaker: JA
     wire        ja_draining, bk_drain_open, bk_flush;  wire [1:0] bk_sink;
     wire        ja_step_done;  wire [12:0] ja_count;
     wire        ja_rxn_valid;  wire [5:0] ja_rxn_id;   wire [1:0] ja_rxn_fx;
@@ -273,11 +234,11 @@ module CollisionCraft_Top (
         .flush(title | bk_flush),
         .sink_mode(title ? `SINK_DELETE : bk_sink), .sink_block(1'b0),
         .valve_open(1'b0), .trapdoor_open(1'b0), .drain_open(title | bk_drain_open),
-        // left funnel <- JB pipe
+        // left funnel is fed from the JB pipe
         .src0_valid(title ? demo_trickle : !fifo_jb_empty),
         .src0_mat  (title ? demo_jb_mat  : fifo_jb_dout),
         .src0_x0(6'd14), .src0_wlog(2'd2), .src0_y(7'd11), .src0_pop(ja_pop0),
-        // right funnel <- JC pipe
+        // right funnel is fed from the JC pipe
         .src1_valid(title ? demo_trickle : !fifo_jc_empty),
         .src1_mat  (title ? demo_jc_mat  : fifo_jc_dout),
         .src1_x0(6'd46), .src1_wlog(2'd2), .src1_y(7'd11), .src1_pop(ja_pop1),
@@ -297,9 +258,7 @@ module CollisionCraft_Top (
     wire lab_busy = (jb_state == `CH_RELEASE) || (jc_state == `CH_RELEASE) ||
                     !fifo_jb_empty || !fifo_jc_empty;
 
-    // =================================================================================
-    //  Reactions bookkeeping and game director  (Person 3)
-    // =================================================================================
+    // Reactions bookkeeping and game director  (Arnav)
     wire [12:0] target_count;
     wire [5:0]  disc_count, rxn_seen_id;
     wire        new_disc, rxn_seen;
@@ -343,9 +302,7 @@ module CollisionCraft_Top (
         .demo_jb_mat(demo_jb_mat), .demo_jc_mat(demo_jc_mat), .demo_trickle(demo_trickle)
     );
 
-    // =================================================================================
-    //  Screens  (Person 1)
-    // =================================================================================
+    // Screens  (Zi Le)
     wire        jb_fb, jb_sp;  wire [12:0] jb_pi;  wire [15:0] jb_pd;
     wire        jc_fb, jc_sp;  wire [12:0] jc_pi;  wire [15:0] jc_pd;
     wire        ja_fb, ja_sp;  wire [12:0] ja_pi;  wire [15:0] ja_pd;
@@ -380,14 +337,14 @@ module CollisionCraft_Top (
         .pixel_data(ja_pd)
     );
 
-    // ---- SINGLE-OLED TEST MODE ------------------------------------------------------------------
-    //  Only one OLED? Plug it into ANY of JA / JB / JC and pick what it shows with sw8, sw7:
+    // SINGLE OLED TEST MODE
+    // Only one OLED? Plug it into ANY of JA / JB / JC and pick what it shows with sw8, sw7:
     //     sw8 sw7 = 0 0 : normal (each header shows its own screen)
     //               0 1 : every header shows JB (left chamber)
     //               1 0 : every header shows JC (right chamber)
     //               1 1 : every header shows JA (reaction beaker)
-    //  This works because all three OLED drivers share one clock and start together, so
-    //  they always ask for the same pixel at the same moment.
+    // This works because all three OLED drivers share one clock and start together, so
+    // they always ask for the same pixel at the same moment.
     wire [1:0]  view_sel = {sw[8], sw[7]};
     wire [15:0] view_pd  = (view_sel == 2'd1) ? jb_pd :
                            (view_sel == 2'd2) ? jc_pd : ja_pd;
@@ -395,8 +352,8 @@ module CollisionCraft_Top (
     wire [15:0] jc_out   = (view_sel == 2'd0) ? jc_pd : view_pd;
     wire [15:0] ja_out   = (view_sel == 2'd0) ? ja_pd : view_pd;
 
-    // ---- The three OLED drivers (given module, unmodified) ------------------------------------
-    //  Pmod pin order: 0 cs, 1 sdin, 2 (unused), 3 sclk, 4 d_cn, 5 resn, 6 vccen, 7 pmoden
+    // The three OLED drivers (given module, unmodified)
+    // Pmod pin order: 0 cs, 1 sdin, 2 (unused), 3 sclk, 4 d_cn, 5 resn, 6 vccen, 7 pmoden
     Oled_Display oled_jb (
         .clk(clk_oled), .reset(1'b0), .frame_begin(jb_fb), .sending_pixels(jb_sp),
         .sample_pixel(), .pixel_index(jb_pi), .pixel_data(jb_out),
@@ -418,9 +375,7 @@ module CollisionCraft_Top (
     );
     assign JA[2] = 1'b0;
 
-    // =================================================================================
-    //  LEDs and 7-segment
-    // =================================================================================
+    // LEDs and 7 segment
     // Explosions flash every LED for a moment; the title screen runs its scanner.
     // Otherwise: left switch LEDs | solid "barricade" over sw9..sw6 | right switch LEDs
     wire led_burst = (flash >= 4'd12);
@@ -436,5 +391,3 @@ module CollisionCraft_Top (
     );
 
 endmodule
-
-`default_nettype wire

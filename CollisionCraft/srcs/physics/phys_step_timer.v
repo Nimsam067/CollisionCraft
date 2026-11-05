@@ -1,19 +1,14 @@
-// =============================================================================
-//  phys_step_timer.v  --  The heartbeat of the simulation
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 2  (Physics Engine)
+// Generates the physics step pulse, 120 times a second (30 in slow motion). If
+// an engine is still busy when the next step is due, it waits for it.
 //
-//  Produces a "step" pulse 120 times a second (30 in slow motion).
-//  All three engines step together. If an engine is somehow still busy when
-//  the next beat arrives, we wait for it instead of piling up requests.
-// =============================================================================
+// Owner: Aadi (Physics Engine)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module phys_step_timer (
     input  wire clk,
     input  wire rst,
-    input  wire slow,          // slow-motion switch
+    input  wire slow,          // slow motion switch
     input  wire any_busy,      // OR of all engines' busy flags
     output reg  step
 );
@@ -42,5 +37,3 @@ module phys_step_timer (
     end
 
 endmodule
-
-`default_nettype wire

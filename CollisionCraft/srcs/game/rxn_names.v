@@ -1,19 +1,10 @@
-// =============================================================================
-//  rxn_names.v  --  The banner text and the hint for every reaction
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 3  (Interactions & Game Logic)
+// Banner name and two hint lines for every reaction. The hints are used by the
+// HINT button in free play. Every string is 10 characters padded with spaces,
+// with at most 9 visible letters so it fits inside the banner.
 //
-//  name         : shown in the pop-up banner when the reaction happens
-//  hint0, hint1 : two lines telling the player how to make it
-//                 (used by the HINT button in free play)
-//
-//  Every string is exactly 10 characters, padded with spaces, but holds at
-//  most 9 visible letters so it fits inside the banner / message box.
-//  "X 1ST, Y 2ND"  = release X first, then Y in a later release.
-//  "MIX X AND Y"   = release both chambers with one press.
-// =============================================================================
+// Owner: Arnav (Interactions & Game Logic)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module rxn_names (
     input  wire [5:0]  id,
@@ -67,5 +58,3 @@ module rxn_names (
     end
 
 endmodule
-
-`default_nettype wire

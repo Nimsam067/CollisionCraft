@@ -1,29 +1,10 @@
-// =============================================================================
-//  gfx_reagent_screen.v  --  Draws one reagent chamber (JB or JC)
-// -----------------------------------------------------------------------------
-//  OWNER: PERSON 1  (Materials, Graphics & Controls)
+// Draws one reagent chamber (JB or JC): the name card for the chosen material, a
+// short description, the funnel, the status text and the material itself. Each
+// pixel is read from grid RAM, shaded, and then the UI is drawn on top.
 //
-//  What you see on JB / JC, top to bottom:
-//
-//    +--------------------+   NAME CARD: slides down when you pick a material,
-//    |      WATER         |   tinted in the material's colour, dissolves when
-//    +--------------------+   you discard it.
-//          LIQUID             description line
-//     \                  /    funnel (real geometry - material pours through)
-//            ||               neck
-//    |      POURING       |   status line (POURING / READY / FLOWING ...)
-//    |                    |
-//    |~~~~~~~~~~~~~~~~~~~~|   the simulated material
-//    |____________________|   floor with valve (opens on release) or
-//            ||               trapdoor (drops on discard)
-//
-//  Pixel pipeline (all on the 6.25 MHz OLED clock):
-//    gfx_oled_mapper says which pixel to prepare  ->  read the cell and the
-//    cell above it from grid RAM  ->  shade it  ->  layer UI on top  ->
-//    hold it in next_pix until the OLED asks for it.
-// =============================================================================
+// Owner: Zi Le (Materials, Graphics & Controls)
+
 `include "cc_defines.vh"
-`default_nettype none
 
 module gfx_reagent_screen #(
     parameter ROTATE = 0,
@@ -41,25 +22,25 @@ module gfx_reagent_screen #(
     input  wire [5:0]  ch_mat,
     input  wire        valve_open,
     input  wire        trapdoor_open,
-    input  wire        demo,              // title-screen attract mode
+    input  wire        demo,              // title screen attract mode
     // to Oled_Display
     output reg  [15:0] pixel_data
 );
 
-    // ---- Bring status signals into this clock domain ---------------------------------
+    // Bring status signals into this clock domain
     reg [2:0] st_q;  reg [5:0] mat_q;  reg valve_q, trap_q, demo_q;
     always @(posedge clk) begin
         st_q <= ch_state; mat_q <= ch_mat; valve_q <= valve_open;
         trap_q <= trapdoor_open; demo_q <= demo;
     end
 
-    // ---- Animation frame counter (60 Hz) --------------------------------------------------
+    // Animation frame counter (60 Hz)
     reg [7:0] frame = 8'd0;
     always @(posedge clk) if (frame_begin) frame <= frame + 8'd1;
 
-    // ---- Name-card animation -----------------------------------------------------------------
-    // slide   : 0 -> 15, card drops in from above the screen
-    // dissolve: 0 -> 15, card crumbles away while discarding
+    // Name card animation
+    // slide   : 0 to 15, card drops in from above the screen
+    // dissolve: 0 to 15, card crumbles away while discarding
     reg [5:0] card_mat = 6'd0;
     reg [3:0] slide    = 4'd0;
     reg [3:0] dissolve = 4'd0;
@@ -82,7 +63,7 @@ module gfx_reagent_screen #(
     end
     wire [3:0] offset = 4'd15 - slide;          // how far the card is still above the screen
 
-    // ---- Which pixel are we preparing? ---------------------------------------------------
+    // Which pixel are we preparing?
     wire advance, start;
     wire [6:0] lx, ly;
     gfx_oled_mapper #(.ROTATE(ROTATE), .MIRROR(MIRROR)) mapper (
@@ -90,7 +71,7 @@ module gfx_reagent_screen #(
         .advance(advance), .start(start), .lx(lx), .ly(ly)
     );
 
-    // ---- Read pipeline: centre cell, then the cell above -------------------------------
+    // Read pipeline: centre cell, then the cell above
     localparam P_IDLE = 3'd0, P_RD_C = 3'd1, P_RD_U = 3'd2, P_CAP_U = 3'd3, P_MIX = 3'd4;
     reg [2:0]  pstate = P_IDLE;
     reg [15:0] cell_c, cell_u;
@@ -104,7 +85,7 @@ module gfx_reagent_screen #(
         endcase
     end
 
-    // ---- Geometry, shading and text (all combinational) --------------------------------
+    // Geometry, shading and text (all combinational)
     wire       is_wall, in_body;
     wire [2:0] part;
     gfx_chamber_geometry #(.CHAMBER(0)) geo (
@@ -184,8 +165,8 @@ module gfx_reagent_screen #(
         .str(t_str), .on(text_on)
     );
 
-    // ---- Helpers --------------------------------------------------------------------------------
-    // Average two RGB565 colours (used for see-through steam, glass, card tint)
+    // Helpers
+    // Average two RGB565 colours (used for see through steam, glass, card tint)
     function [15:0] blend;
         input [15:0] a, b;
         reg   [5:0]  sr;
@@ -204,10 +185,10 @@ module gfx_reagent_screen #(
         dim4 = {2'b0, a[15:13], 2'b0, a[10:7], 2'b0, a[4:2]};
     endfunction
 
-    // A tiny per-pixel hash for the crumbling-card effect
+    // A tiny per pixel hash for the crumbling card effect
     wire [7:0] h_pix = ({1'b0, lx} * 8'd73) ^ ({1'b0, ly} * 8'd151);
 
-    // ---- Final composition of one pixel ------------------------------------------------------
+    // Final composition of one pixel
     reg [15:0] bg, out;
     wire [6:0] card_y = ly + {3'b0, offset};
     wire in_card  = has_card && (card_y <= 7'd15) && (lx >= 7'd1) && (lx <= 7'd62) &&
@@ -260,7 +241,7 @@ module gfx_reagent_screen #(
         end
     end
 
-    // ---- Run the pipeline ---------------------------------------------------------------------
+    // Run the pipeline
     always @(posedge clk) begin
         // the OLED has moved on: hand over the pixel we prepared
         if (advance)
@@ -277,5 +258,3 @@ module gfx_reagent_screen #(
     end
 
 endmodule
-
-`default_nettype wire
