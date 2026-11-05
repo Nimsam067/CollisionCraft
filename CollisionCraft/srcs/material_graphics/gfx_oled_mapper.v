@@ -1,28 +1,28 @@
-// Converts the OLED's pixel_index into (x, y) for our portrait layout (64 wide,
+// Converts the OLED's pixel_index into (x, y) for portrait layout (64 wide,
 // 96 tall). ROTATE picks which way the screen is turned and MIRROR flips it left
-// to right. If a screen looks upside down, change its ROTATE value in
+// to right. If a screen looks upside down, change ROTATE value in
 // CollisionCraft_Top.v.
-//
+
 // Block RAM takes a few cycles to read, so this works one pixel ahead of the
 // OLED and hands over the prepared pixel when the OLED moves on.
-//
+
 // Owner: Zi Le (Materials, Graphics & Controls)
 
 module gfx_oled_mapper #(
     parameter ROTATE = 0,
     parameter MIRROR = 0
 )(
-    input  wire        clk,             // 6.25 MHz OLED clock
-    input  wire [12:0] pixel_index,
-    input  wire        sending_pixels,
-    output wire        advance,         // OLED moved to a new pixel (combinational)
-    output wire        start,           // a new target needs preparing (combinational)
-    output reg  [6:0]  lx,              // logical coordinates of the target
-    output reg  [6:0]  ly
+    input wire clk, // 6.25 MHz OLED clock
+    input wire [12:0] pixel_index,
+    input wire sending_pixels,
+    output wire advance, // OLED moved to a new pixel
+    output wire start, // a new target
+    output reg [6:0] lx, // coordinates of the target
+    output reg [6:0] ly
 );
 
-    // Which pixel should we prepare next?
-    wire [12:0] target = !sending_pixels          ? 13'd0 :
+    // Next pixel
+    wire [12:0] target = !sending_pixels ? 13'd0 :
                          (pixel_index == 13'd6143) ? 13'd0 :
                                                      pixel_index + 13'd1;
 
@@ -30,11 +30,11 @@ module gfx_oled_mapper #(
     reg [12:0] tgt_q = 13'd1;
 
     assign advance = (pixel_index != idx_q);
-    assign start   = (target != tgt_q);
+    assign start = (target != tgt_q);
 
-    // Native coordinates of the target
-    wire [6:0] nx = target % 13'd96;     // 0..95 along the OLED's long side
-    wire [5:0] ny = target / 13'd96;     // 0..63 along the short side
+    // Coordinates of the target
+    wire [6:0] nx = target % 13'd96; // 0..95 along the OLED's long side
+    wire [5:0] ny = target / 13'd96; // 0..63 along the short side
 
     // Rotate into portrait
     wire [6:0] rx = (ROTATE == 0) ? (7'd63 - {1'b0, ny}) : {1'b0, ny};

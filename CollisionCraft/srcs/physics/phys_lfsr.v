@@ -6,8 +6,8 @@
 module phys_lfsr #(
     parameter [31:0] SEED = 32'hACE1_2468
 )(
-    input  wire        clk,
-    output reg  [31:0] rnd = SEED
+    input wire clk,
+    output reg [31:0] rnd = SEED
 );
 
     // taps for x^32 + x^22 + x^2 + x + 1 (maximal length)

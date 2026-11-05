@@ -6,15 +6,15 @@
 
 module phys_grid_ram (
     // physics side
-    input  wire        clk_a,
-    input  wire [12:0] addr_a,
-    input  wire        we_a,
-    input  wire [15:0] din_a,
-    output reg  [15:0] dout_a,
+    input wire clk_a,
+    input wire [12:0] addr_a,
+    input wire we_a,
+    input wire [15:0] din_a,
+    output reg [15:0] dout_a,
     // renderer side
-    input  wire        clk_b,
-    input  wire [12:0] addr_b,
-    output reg  [15:0] dout_b
+    input wire clk_b,
+    input wire [12:0] addr_b,
+    output reg [15:0] dout_b
 );
 
     (* ram_style = "block" *)

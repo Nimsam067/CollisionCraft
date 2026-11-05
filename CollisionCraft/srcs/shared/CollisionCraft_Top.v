@@ -6,7 +6,7 @@
 //
 // The board is held turned 90 degrees anticlockwise, so the buttons are named
 // from the player's point of view: btnC is OK, btnR is UP, btnL is DOWN, btnU is
-// MENU and btnD is HINT. 
+// MENU and btnD is HINT.
 //
 // If a screen is upside down, its *_ROTATE value can be changed.
 //
@@ -15,21 +15,21 @@
 `include "cc_defines.vh"
 
 module CollisionCraft_Top (
-    input  wire        clk,          // 100 MHz
-    input  wire [15:0] sw,
-    input  wire        btnC, btnU, btnD, btnL, btnR,
+    input wire clk, // 100 MHz
+    input wire [15:0] sw,
+    input wire btnC, btnU, btnD, btnL, btnR,
     output wire [15:0] led,
-    output wire [6:0]  seg,
-    output wire        dp,
-    output wire [3:0]  an,
-    output wire [7:0]  JA,
-    output wire [7:0]  JB,
-    output wire [7:0]  JC
+    output wire [6:0] seg,
+    output wire dp,
+    output wire [3:0] an,
+    output wire [7:0] JA,
+    output wire [7:0] JB,
+    output wire [7:0] JC
 );
 
     localparam JB_ROTATE = 1;
     localparam JC_ROTATE = 1;
-    localparam JA_ROTATE = 0;     // JA sits on the opposite edge of the board
+    localparam JA_ROTATE = 0; // JA sits on the opposite edge of the board
 
     // Clocks, reset and timing ticks
     wire clk_core, clk_oled, rst;
@@ -37,11 +37,11 @@ module CollisionCraft_Top (
 
     // 60 Hz animation tick for LEDs, timers and banners
     reg [18:0] anim_cnt = 19'd0;
-    reg        anim_tick = 1'b0;
+    reg anim_tick = 1'b0;
     always @(posedge clk_core) begin
         anim_tick <= 1'b0;
         if (anim_cnt == `ANIM_DIV) begin
-            anim_cnt  <= 19'd0;
+            anim_cnt <= 19'd0;
             anim_tick <= 1'b1;
         end else
             anim_cnt <= anim_cnt + 19'd1;
@@ -50,30 +50,30 @@ module CollisionCraft_Top (
     // Buttons  (Zi Le)
     // Maps each physical board button to a job. Everywhere else we can use job names.
     wire ok_press, up_press, down_press, menu_press, hint_press;
-    ui_debounce db_ok   (.clk(clk_core), .rst(rst), .btn_raw(btnC), .level(), .press(ok_press),   .hold());
-    ui_debounce db_up   (.clk(clk_core), .rst(rst), .btn_raw(btnR), .level(), .press(up_press),   .hold());
+    ui_debounce db_ok (.clk(clk_core), .rst(rst), .btn_raw(btnC), .level(), .press(ok_press), .hold());
+    ui_debounce db_up (.clk(clk_core), .rst(rst), .btn_raw(btnR), .level(), .press(up_press), .hold());
     ui_debounce db_down (.clk(clk_core), .rst(rst), .btn_raw(btnL), .level(), .press(down_press), .hold());
     ui_debounce db_menu (.clk(clk_core), .rst(rst), .btn_raw(btnU), .level(), .press(menu_press), .hold());
     ui_debounce db_hint (.clk(clk_core), .rst(rst), .btn_raw(btnD), .level(), .press(hint_press), .hold());
 
     // Signals shared between the sections
-    wire [1:0]  mode, menu_sel, pause_sel;
-    wire        paused, slow_mo, pad_show;
-    wire [2:0]  pad_hi;
+    wire [1:0] mode, menu_sel, pause_sel;
+    wire paused, slow_mo, pad_show;
+    wire [2:0] pad_hi;
     wire [63:0] found_mask;
-    wire        title, allow_pour, release_cmd, drain_cmd, clear_lab, clear_disc;
-    wire [5:0]  hint_jb, hint_jc, target_mat, demo_jb_mat, demo_jc_mat;
-    wire        demo_trickle;
+    wire title, allow_pour, release_cmd, drain_cmd, clear_lab, clear_disc;
+    wire [5:0] hint_jb, hint_jc, target_mat, demo_jb_mat, demo_jc_mat;
+    wire demo_trickle;
     wire [79:0] header_str, msg0, msg1, msg2, msg3;
     wire [15:0] header_col;
-    wire        msg_show;
-    wire [4:0]  sg3, sg2, sg1, sg0;
-    wire [3:0]  sg_dp;
-    wire        leds_override_en;
+    wire msg_show;
+    wire [4:0] sg3, sg2, sg1, sg0;
+    wire [3:0] sg_dp;
+    wire leds_override_en;
     wire [15:0] leds_override;
 
     // the beaker pops grains out of the two transfer pipes
-    wire        ja_pop0, ja_pop1;
+    wire ja_pop0, ja_pop1;
 
     // the lab is held in reset on the title screen and when a mode wipes it
     wire lab_reset = rst | clear_lab | title;
@@ -89,15 +89,15 @@ module CollisionCraft_Top (
     // LEFT reagent chamber: JB
     // Physical switches sw15..sw10 to bit 0 (WATER) .. bit 5 (OIL)
     wire [5:0] jb_sw = {sw[10], sw[11], sw[12], sw[13], sw[14], sw[15]};
-    wire [1:0] jb_sel_state;  wire [5:0] jb_sel_mat, jb_led;
-    wire [2:0] jb_state;      wire [5:0] jb_mat;
-    wire       jb_emit_start, jb_emit_stop, jb_emit_pause, jb_emit_done;
-    wire       jb_valve, jb_trap, jb_ctl_flush;  wire [1:0] jb_ctl_sink;
-    wire       jb_src_valid, jb_pop;   wire [5:0] jb_src_mat, jb_src_x0;
-    wire [1:0] jb_src_wlog;            wire [6:0] jb_src_y;
-    wire       jb_step_done;           wire [12:0] jb_count;
-    wire       jb_exit_valid;          wire [5:0] jb_exit_mat;
-    wire       fifo_jb_empty, fifo_jb_afull;  wire [5:0] fifo_jb_dout;
+    wire [1:0] jb_sel_state; wire [5:0] jb_sel_mat, jb_led;
+    wire [2:0] jb_state; wire [5:0] jb_mat;
+    wire jb_emit_start, jb_emit_stop, jb_emit_pause, jb_emit_done;
+    wire jb_valve, jb_trap, jb_ctl_flush; wire [1:0] jb_ctl_sink;
+    wire jb_src_valid, jb_pop; wire [5:0] jb_src_mat, jb_src_x0;
+    wire [1:0] jb_src_wlog; wire [6:0] jb_src_y;
+    wire jb_step_done; wire [12:0] jb_count;
+    wire jb_exit_valid; wire [5:0] jb_exit_mat;
+    wire fifo_jb_empty, fifo_jb_afull; wire [5:0] fifo_jb_dout;
 
     mat_switch_select sel_jb (
         .clk(clk_core), .rst(rst), .anim_tick(anim_tick), .sw_raw(jb_sw),
@@ -121,8 +121,8 @@ module CollisionCraft_Top (
         .y(jb_src_y), .done(jb_emit_done)
     );
 
-    wire [12:0] jb_ra_addr;  wire [15:0] jb_ra_wdata, jb_ra_rdata;  wire jb_ra_we;
-    wire [12:0] jb_rb_addr;  wire [15:0] jb_rb_data;
+    wire [12:0] jb_ra_addr; wire [15:0] jb_ra_wdata, jb_ra_rdata; wire jb_ra_we;
+    wire [12:0] jb_rb_addr; wire [15:0] jb_rb_data;
 
     phys_engine #(.CHAMBER(0), .INJ_TRIES(6), .SEED(32'h1234_ABCD)) eng_jb (
         .clk(clk_core), .rst(rst), .step_req(step), .clear_req(clear_lab), .age_req(1'b0),
@@ -151,15 +151,15 @@ module CollisionCraft_Top (
     // RIGHT reagent chamber: JC  (identical to JB)
     // Physical switches sw5..sw0 to bit 0 (WATER) .. bit 5 (OIL)
     wire [5:0] jc_sw = {sw[0], sw[1], sw[2], sw[3], sw[4], sw[5]};
-    wire [1:0] jc_sel_state;  wire [5:0] jc_sel_mat, jc_led;
-    wire [2:0] jc_state;      wire [5:0] jc_mat;
-    wire       jc_emit_start, jc_emit_stop, jc_emit_pause, jc_emit_done;
-    wire       jc_valve, jc_trap, jc_ctl_flush;  wire [1:0] jc_ctl_sink;
-    wire       jc_src_valid, jc_pop;   wire [5:0] jc_src_mat, jc_src_x0;
-    wire [1:0] jc_src_wlog;            wire [6:0] jc_src_y;
-    wire       jc_step_done;           wire [12:0] jc_count;
-    wire       jc_exit_valid;          wire [5:0] jc_exit_mat;
-    wire       fifo_jc_empty, fifo_jc_afull;  wire [5:0] fifo_jc_dout;
+    wire [1:0] jc_sel_state; wire [5:0] jc_sel_mat, jc_led;
+    wire [2:0] jc_state; wire [5:0] jc_mat;
+    wire jc_emit_start, jc_emit_stop, jc_emit_pause, jc_emit_done;
+    wire jc_valve, jc_trap, jc_ctl_flush; wire [1:0] jc_ctl_sink;
+    wire jc_src_valid, jc_pop; wire [5:0] jc_src_mat, jc_src_x0;
+    wire [1:0] jc_src_wlog; wire [6:0] jc_src_y;
+    wire jc_step_done; wire [12:0] jc_count;
+    wire jc_exit_valid; wire [5:0] jc_exit_mat;
+    wire fifo_jc_empty, fifo_jc_afull; wire [5:0] fifo_jc_dout;
 
     mat_switch_select sel_jc (
         .clk(clk_core), .rst(rst), .anim_tick(anim_tick), .sw_raw(jc_sw),
@@ -183,8 +183,8 @@ module CollisionCraft_Top (
         .y(jc_src_y), .done(jc_emit_done)
     );
 
-    wire [12:0] jc_ra_addr;  wire [15:0] jc_ra_wdata, jc_ra_rdata;  wire jc_ra_we;
-    wire [12:0] jc_rb_addr;  wire [15:0] jc_rb_data;
+    wire [12:0] jc_ra_addr; wire [15:0] jc_ra_wdata, jc_ra_rdata; wire jc_ra_we;
+    wire [12:0] jc_rb_addr; wire [15:0] jc_rb_data;
 
     phys_engine #(.CHAMBER(0), .INJ_TRIES(6), .SEED(32'h5EED_C0DE)) eng_jc (
         .clk(clk_core), .rst(rst), .step_req(step), .clear_req(clear_lab), .age_req(1'b0),
@@ -211,10 +211,10 @@ module CollisionCraft_Top (
     );
 
     // Reaction beaker: JA
-    wire        ja_draining, bk_drain_open, bk_flush;  wire [1:0] bk_sink;
-    wire        ja_step_done;  wire [12:0] ja_count;
-    wire        ja_rxn_valid;  wire [5:0] ja_rxn_id;   wire [1:0] ja_rxn_fx;
-    wire        ja_visit_valid; wire [5:0] ja_visit_mat;
+    wire ja_draining, bk_drain_open, bk_flush; wire [1:0] bk_sink;
+    wire ja_step_done; wire [12:0] ja_count;
+    wire ja_rxn_valid; wire [5:0] ja_rxn_id; wire [1:0] ja_rxn_fx;
+    wire ja_visit_valid; wire [5:0] ja_visit_mat;
 
     phys_beaker_ctrl beaker (
         .clk(clk_core), .rst(lab_reset), .step_done(ja_step_done), .cell_count(ja_count),
@@ -222,23 +222,23 @@ module CollisionCraft_Top (
         .sink_mode(bk_sink), .flush(bk_flush)
     );
 
-    wire [12:0] ja_ra_addr;  wire [15:0] ja_ra_wdata, ja_ra_rdata;  wire ja_ra_we;
-    wire [12:0] ja_rb_addr;  wire [15:0] ja_rb_data;
+    wire [12:0] ja_ra_addr; wire [15:0] ja_ra_wdata, ja_ra_rdata; wire ja_ra_we;
+    wire [12:0] ja_rb_addr; wire [15:0] ja_rb_data;
 
     // On the title screen the beaker is fed by the demo instead of the pipes
     phys_engine #(.CHAMBER(1), .INJ_TRIES(4), .SEED(32'hBEEF_F00D)) eng_ja (
         .clk(clk_core), .rst(rst), .step_req(step), .clear_req(clear_lab),
-        .age_req(release_cmd),          // everything already in the beaker becomes "first"
+        .age_req(release_cmd), // everything already in the beaker becomes "first"
         .flush(title | bk_flush),
         .sink_mode(title ? `SINK_DELETE : bk_sink), .sink_block(1'b0),
         .valve_open(1'b0), .trapdoor_open(1'b0), .drain_open(title | bk_drain_open),
         // left funnel is fed from the JB pipe
         .src0_valid(title ? demo_trickle : !fifo_jb_empty),
-        .src0_mat  (title ? demo_jb_mat  : fifo_jb_dout),
+        .src0_mat (title ? demo_jb_mat : fifo_jb_dout),
         .src0_x0(6'd14), .src0_wlog(2'd2), .src0_y(7'd11), .src0_pop(ja_pop0),
         // right funnel is fed from the JC pipe
         .src1_valid(title ? demo_trickle : !fifo_jc_empty),
-        .src1_mat  (title ? demo_jc_mat  : fifo_jc_dout),
+        .src1_mat (title ? demo_jc_mat : fifo_jc_dout),
         .src1_x0(6'd46), .src1_wlog(2'd2), .src1_y(7'd11), .src1_pop(ja_pop1),
         .ram_addr(ja_ra_addr), .ram_wdata(ja_ra_wdata), .ram_we(ja_ra_we), .ram_rdata(ja_ra_rdata),
         .exit_valid(), .exit_mat(),
@@ -258,13 +258,13 @@ module CollisionCraft_Top (
 
     // Reactions bookkeeping and game director  (Arnav)
     wire [12:0] target_count;
-    wire [5:0]  disc_count, rxn_seen_id;
-    wire        new_disc, rxn_seen;
-    wire        banner_show, banner_new, beaker_full;
+    wire [5:0] disc_count, rxn_seen_id;
+    wire new_disc, rxn_seen;
+    wire banner_show, banner_new, beaker_full;
     wire [79:0] banner_str;
     wire [15:0] banner_col;
-    wire [3:0]  flash;
-    wire [6:0]  fill_rows;
+    wire [3:0] flash;
+    wire [6:0] fill_rows;
 
     rxn_tracker tracker (
         .clk(clk_core), .rst(rst), .anim_tick(anim_tick), .enable(!title),
@@ -301,9 +301,9 @@ module CollisionCraft_Top (
     );
 
     // Screens  (Zi Le)
-    wire        jb_fb, jb_sp;  wire [12:0] jb_pi;  wire [15:0] jb_pd;
-    wire        jc_fb, jc_sp;  wire [12:0] jc_pi;  wire [15:0] jc_pd;
-    wire        ja_fb, ja_sp;  wire [12:0] ja_pi;  wire [15:0] ja_pd;
+    wire jb_fb, jb_sp; wire [12:0] jb_pi; wire [15:0] jb_pd;
+    wire jc_fb, jc_sp; wire [12:0] jc_pi; wire [15:0] jc_pd;
+    wire ja_fb, ja_sp; wire [12:0] ja_pi; wire [15:0] ja_pd;
 
     gfx_reagent_screen #(.ROTATE(JB_ROTATE)) screen_jb (
         .clk(clk_oled), .pixel_index(jb_pi), .sending_pixels(jb_sp), .frame_begin(jb_fb),
@@ -339,14 +339,14 @@ module CollisionCraft_Top (
     // Only one OLED: Plug it into ANY of JA / JB / JC and pick what it shows with sw8, sw7
     // Helps work independently
 
-    wire [1:0]  view_sel = {sw[8], sw[7]};
-    wire [15:0] view_pd  = (view_sel == 2'd1) ? jb_pd :
+    wire [1:0] view_sel = {sw[8], sw[7]};
+    wire [15:0] view_pd = (view_sel == 2'd1) ? jb_pd :
                            (view_sel == 2'd2) ? jc_pd : ja_pd;
-    wire [15:0] jb_out   = (view_sel == 2'd0) ? jb_pd : view_pd;
-    wire [15:0] jc_out   = (view_sel == 2'd0) ? jc_pd : view_pd;
-    wire [15:0] ja_out   = (view_sel == 2'd0) ? ja_pd : view_pd;
+    wire [15:0] jb_out = (view_sel == 2'd0) ? jb_pd : view_pd;
+    wire [15:0] jc_out = (view_sel == 2'd0) ? jc_pd : view_pd;
+    wire [15:0] ja_out = (view_sel == 2'd0) ? ja_pd : view_pd;
 
-    // The three OLED drivers 
+    // The three OLED drivers
     Oled_Display oled_jb (
         .clk(clk_oled), .reset(1'b0), .frame_begin(jb_fb), .sending_pixels(jb_sp),
         .sample_pixel(), .pixel_index(jb_pi), .pixel_data(jb_out),
@@ -372,10 +372,10 @@ module CollisionCraft_Top (
     // Explosions flash every LED for a moment; the title screen runs its scanner.
     // Otherwise: left switch LEDs | solid "barricade" over sw9..sw6 | right switch LEDs
     wire led_burst = (flash >= 4'd12);
-    assign led = led_burst        ? 16'hFFFF :
+    assign led = led_burst ? 16'hFFFF :
                  leds_override_en ? leds_override :
-                 { jb_led[0], jb_led[1], jb_led[2], jb_led[3], jb_led[4], jb_led[5],   // led15..10
-                   4'b1111,                                                            // led9..6 barricade
+                 { jb_led[0], jb_led[1], jb_led[2], jb_led[3], jb_led[4], jb_led[5], // led15..10
+                   4'b1111, // led9..6 barricade
                    jc_led[0], jc_led[1], jc_led[2], jc_led[3], jc_led[4], jc_led[5] }; // led5..0
 
     ui_seven_seg sevenseg (

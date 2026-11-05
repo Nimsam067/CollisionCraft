@@ -11,58 +11,58 @@
 `include "cc_defines.vh"
 
 module game_tutorial (
-    input  wire        clk,
-    input  wire        rst,
-    input  wire        anim_tick,
-    input  wire        enter,           // pulse: start (or restart) the tutorial
+    input wire clk,
+    input wire rst,
+    input wire anim_tick,
+    input wire enter, // pulse: start (or restart) the tutorial
     // buttons, by their job
-    input  wire        btn_ok, btn_up, btn_down, btn_menu, btn_hint,
+    input wire btn_ok, btn_up, btn_down, btn_menu, btn_hint,
     // lab status
-    input  wire [2:0]  jb_state, jc_state,
-    input  wire        lab_busy, ja_draining,
-    input  wire [12:0] ja_count,
-    input  wire        released,
-    input  wire        rxn_seen,
-    input  wire [5:0]  rxn_seen_id,
+    input wire [2:0] jb_state, jc_state,
+    input wire lab_busy, ja_draining,
+    input wire [12:0] ja_count,
+    input wire released,
+    input wire rxn_seen,
+    input wire [5:0] rxn_seen_id,
     // requests to the game director
-    output reg         want_release,
-    output reg         want_drain,
-    output reg         clear_lab,
-    output reg         exit_req,
-    output wire        allow_pour,
-    output reg  [5:0]  hint_jb,
-    output reg  [5:0]  hint_jc,
-    output wire        tour,            // button tour running: MENU/UP keep their tour meaning
+    output reg want_release,
+    output reg want_drain,
+    output reg clear_lab,
+    output reg exit_req,
+    output wire allow_pour,
+    output reg [5:0] hint_jb,
+    output reg [5:0] hint_jc,
+    output wire tour, // button tour running: MENU/UP keep their tour meaning
     // what to show on JA
-    output reg  [79:0] header_str,
-    output reg  [15:0] header_col,
-    output reg         msg_show,
-    output reg  [79:0] msg0, msg1, msg2, msg3,
-    output wire        pad_show,        // draw the five button picture
-    output reg  [2:0]  pad_hi,          // which button in the picture blinks
+    output reg [79:0] header_str,
+    output reg [15:0] header_col,
+    output reg msg_show,
+    output reg [79:0] msg0, msg1, msg2, msg3,
+    output wire pad_show, // draw the five button picture
+    output reg [2:0] pad_hi, // which button in the picture blinks
     // 7 segment
-    output wire [4:0]  sg3, sg2, sg1, sg0,
-    output wire [3:0]  dp
+    output wire [4:0] sg3, sg2, sg1, sg0,
+    output wire [3:0] dp
 );
 
-    localparam [3:0] T_WELCOME = 4'd0,  T_PAD     = 4'd1,  T_K_OK   = 4'd2,  T_K_UP    = 4'd3,
-                     T_K_DOWN  = 4'd4,  T_K_MENU  = 4'd5,  T_K_HINT = 4'd6,  T_PICK    = 4'd7,
-                     T_DISCARD = 4'd8,  T_FILL    = 4'd9,  T_RELEASE= 4'd10, T_WATCH   = 4'd11,
-                     T_ORDER   = 4'd12, T_DRAIN   = 4'd13, T_RECIPE = 4'd14, T_DONE    = 4'd15;
+    localparam [3:0] T_WELCOME = 4'd0, T_PAD = 4'd1, T_K_OK = 4'd2, T_K_UP = 4'd3,
+                     T_K_DOWN = 4'd4, T_K_MENU = 4'd5, T_K_HINT = 4'd6, T_PICK = 4'd7,
+                     T_DISCARD = 4'd8, T_FILL = 4'd9, T_RELEASE= 4'd10, T_WATCH = 4'd11,
+                     T_ORDER = 4'd12, T_DRAIN = 4'd13, T_RECIPE = 4'd14, T_DONE = 4'd15;
 
     localparam [2:0] PAD_NONE = 3'd0, PAD_OK = 3'd1, PAD_UP = 3'd2, PAD_DOWN = 3'd3,
                      PAD_MENU = 3'd4, PAD_HINT = 3'd5;
 
     reg [3:0] step;
-    reg [9:0] timer;            // frames spent in this step
-    reg       saw_discard;      // T_DISCARD: the trapdoor really opened
-    reg       saw_drain;        // T_DRAIN:   the drain really opened
-    reg       box_hidden;       // T_RECIPE:  hide instructions after the first release
+    reg [9:0] timer; // frames spent in this step
+    reg saw_discard; // T_DISCARD: the trapdoor really opened
+    reg saw_drain; // T_DRAIN:   the drain really opened
+    reg box_hidden; // T_RECIPE:  hide instructions after the first release
     reg [7:0] blink;
 
     assign allow_pour = (step >= T_PICK) && (step != T_DONE);
-    assign tour       = (step >= T_PAD) && (step <= T_K_HINT);
-    assign pad_show   = tour;
+    assign tour = (step >= T_PAD) && (step <= T_K_HINT);
+    assign pad_show = tour;
 
     // 7 segment: "t 07" = tutorial step 7
     wire [3:0] step_t = (step >= 4'd10) ? 4'd1 : 4'd0;
@@ -71,35 +71,35 @@ module game_tutorial (
     assign sg2 = `SG_BLANK;
     assign sg1 = {1'b0, step_t};
     assign sg0 = {1'b0, step_o};
-    assign dp  = 4'b0000;
+    assign dp = 4'b0000;
 
     // Step logic
-    wire jb_ready   = (jb_state == `CH_READY);
-    wire jc_ready   = (jc_state == `CH_READY);
+    wire jb_ready = (jb_state == `CH_READY);
+    wire jc_ready = (jc_state == `CH_READY);
     wire both_empty = (jb_state == `CH_EMPTY) && (jc_state == `CH_EMPTY);
 
     // move to the next step
     task go_next;
         begin
-            step  <= step + 4'd1;
+            step <= step + 4'd1;
             timer <= 10'd0;
         end
     endtask
 
     always @(posedge clk) begin
         want_release <= 1'b0;
-        want_drain   <= 1'b0;
-        clear_lab    <= 1'b0;
-        exit_req     <= 1'b0;
+        want_drain <= 1'b0;
+        clear_lab <= 1'b0;
+        exit_req <= 1'b0;
 
         if (rst || enter) begin
-            step        <= T_WELCOME;
-            timer       <= 10'd0;
+            step <= T_WELCOME;
+            timer <= 10'd0;
             saw_discard <= 1'b0;
-            saw_drain   <= 1'b0;
-            box_hidden  <= 1'b0;
-            blink       <= 8'd0;
-            clear_lab   <= enter;
+            saw_drain <= 1'b0;
+            box_hidden <= 1'b0;
+            blink <= 8'd0;
+            clear_lab <= enter;
         end else begin
             if (anim_tick) begin
                 blink <= blink + 8'd1;
@@ -112,32 +112,32 @@ module game_tutorial (
             end else begin
                 case (step)
                     // part 1: the buttons
-                    T_WELCOME: if (btn_ok)   go_next;
-                    T_PAD:     if (btn_ok)   go_next;
-                    T_K_OK:    if (btn_ok)   go_next;
-                    T_K_UP:    if (btn_up)   go_next;
-                    T_K_DOWN:  if (btn_down) go_next;
-                    T_K_MENU:  if (btn_menu) go_next;
+                    T_WELCOME: if (btn_ok) go_next;
+                    T_PAD: if (btn_ok) go_next;
+                    T_K_OK: if (btn_ok) go_next;
+                    T_K_UP: if (btn_up) go_next;
+                    T_K_DOWN: if (btn_down) go_next;
+                    T_K_MENU: if (btn_menu) go_next;
                     // T_K_HINT is passed by the HINT press above
 
                     // part 2: the lab
-                    T_PICK:    if (jb_ready || jc_ready) go_next;
+                    T_PICK: if (jb_ready || jc_ready) go_next;
 
                     T_DISCARD: begin
                         if (jb_state == `CH_DISCARD || jc_state == `CH_DISCARD) saw_discard <= 1'b1;
                         if (saw_discard && both_empty) go_next;
                     end
 
-                    T_FILL:    if (jb_ready && jc_ready) go_next;
+                    T_FILL: if (jb_ready && jc_ready) go_next;
 
                     T_RELEASE: begin
                         if (btn_ok) want_release <= 1'b1;
                         if (released) go_next;
                     end
 
-                    T_WATCH:   if (!lab_busy && timer > 10'd240) go_next;
+                    T_WATCH: if (!lab_busy && timer > 10'd240) go_next;
 
-                    T_ORDER:   if (btn_ok) go_next;
+                    T_ORDER: if (btn_ok) go_next;
 
                     T_DRAIN: begin
                         if (btn_down) want_drain <= 1'b1;
@@ -149,15 +149,15 @@ module game_tutorial (
                     end
 
                     T_RECIPE: begin
-                        if (btn_ok)   want_release <= 1'b1;
-                        if (btn_down) want_drain   <= 1'b1;
+                        if (btn_ok) want_release <= 1'b1;
+                        if (btn_down) want_drain <= 1'b1;
                         if (released) box_hidden <= 1'b1;
                         if (rxn_seen && rxn_seen_id == `RX_OBSIDIAN) go_next;
                     end
 
-                    T_DONE:    if (btn_ok) exit_req <= 1'b1;
+                    T_DONE: if (btn_ok) exit_req <= 1'b1;
 
-                    default:   ;
+                    default: ;
                 endcase
             end
         end
@@ -165,17 +165,17 @@ module game_tutorial (
 
     // What to show
     // colours
-    localparam [15:0] C_GOLD  = {5'd31, 6'd48, 5'd4};
+    localparam [15:0] C_GOLD = {5'd31, 6'd48, 5'd4};
     localparam [15:0] C_WHITE = {5'd31, 6'd63, 5'd31};
 
     always @* begin
         header_str = "TUTORIAL  ";
         header_col = C_GOLD;
-        msg_show   = 1'b1;
+        msg_show = 1'b1;
         msg0 = "          "; msg1 = "          "; msg2 = "          "; msg3 = "          ";
         hint_jb = 6'd0;
         hint_jc = 6'd0;
-        pad_hi  = PAD_NONE;
+        pad_hi = PAD_NONE;
 
         // on the button pages the header says "PRESS IT!" in a blink
         if (step >= T_K_OK && step <= T_K_HINT) begin
@@ -229,7 +229,7 @@ module game_tutorial (
             end
             T_WATCH: begin
                 // no box in the way; remind them about slow motion
-                msg_show   = 1'b0;
+                msg_show = 1'b0;
                 header_str = blink[6] ? "^ = SLOWMO" : "WATCH IT! ";
                 header_col = blink[6] ? {5'd6, 6'd52, 5'd31} : C_GOLD;
             end
@@ -245,8 +245,8 @@ module game_tutorial (
             T_RECIPE: begin
                 msg0 = "STEP 7/7  "; msg1 = "WATER 1ST "; msg2 = "THEN LAVA "; msg3 = "=OBSIDIAN ";
                 msg_show = !box_hidden;
-                hint_jb  = 6'b000001;                         // water
-                hint_jc  = 6'b000100;                         // lava
+                hint_jb = 6'b000001; // water
+                hint_jc = 6'b000100; // lava
                 header_str = blink[7] ? "~ = DRAIN " : "WATER>LAVA";
             end
             T_DONE: begin

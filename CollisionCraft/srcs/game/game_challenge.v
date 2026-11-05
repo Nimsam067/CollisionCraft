@@ -9,52 +9,52 @@
 `include "cc_defines.vh"
 
 module game_challenge (
-    input  wire        clk,
-    input  wire        rst,
-    input  wire        anim_tick,
-    input  wire        enter,           // pulse: start the challenge from level 1
-    input  wire        restart,         // pulse: restart the current level
+    input wire clk,
+    input wire rst,
+    input wire anim_tick,
+    input wire enter, // pulse: start the challenge from level 1
+    input wire restart, // pulse: restart the current level
     // buttons, by their job
-    input  wire        btn_ok, btn_down, btn_hint,
+    input wire btn_ok, btn_down, btn_hint,
     // lab status
-    input  wire        released,
-    input  wire [12:0] target_count,    // grains of the target material in the beaker
+    input wire released,
+    input wire [12:0] target_count, // grains of the target material in the beaker
     // requests to the game director
-    output reg         want_release,
-    output reg         want_drain,
-    output reg         clear_lab,
-    output reg         exit_req,
-    output wire        allow_pour,
-    output wire [5:0]  target_mat,
+    output reg want_release,
+    output reg want_drain,
+    output reg clear_lab,
+    output reg exit_req,
+    output wire allow_pour,
+    output wire [5:0] target_mat,
     // what to show on JA
-    output reg  [79:0] header_str,
-    output reg  [15:0] header_col,
-    output reg         msg_show,
-    output reg  [79:0] msg0, msg1, msg2, msg3,
+    output reg [79:0] header_str,
+    output reg [15:0] header_col,
+    output reg msg_show,
+    output reg [79:0] msg0, msg1, msg2, msg3,
     // 7 segment
-    output reg  [4:0]  sg3, sg2, sg1, sg0,
-    output reg  [3:0]  dp
+    output reg [4:0] sg3, sg2, sg1, sg0,
+    output reg [3:0] dp
 );
 
     localparam [3:0] LEVEL_COUNT = 4'd10;
-    localparam [6:0] TIME_LIMIT  = 7'd90;
+    localparam [6:0] TIME_LIMIT = 7'd90;
 
     localparam [2:0] C_INTRO = 3'd0, C_PLAY = 3'd1, C_WIN = 3'd2, C_FAIL = 3'd3, C_DONE = 3'd4;
 
-    reg [2:0]  phase;
-    reg [3:0]  level;
-    reg [6:0]  secs;            // seconds left
-    reg [5:0]  sub;             // frames within the current second
-    reg [3:0]  used;            // releases used this attempt
-    reg [1:0]  stars;
-    reg [7:0]  hint_timer;      // frames the hint stays visible
-    reg [7:0]  blink;
+    reg [2:0] phase;
+    reg [3:0] level;
+    reg [6:0] secs; // seconds left
+    reg [5:0] sub; // frames within the current second
+    reg [3:0] used; // releases used this attempt
+    reg [1:0] stars;
+    reg [7:0] hint_timer; // frames the hint stays visible
+    reg [7:0] blink;
 
     assign allow_pour = (phase == C_PLAY);
 
     // Level data
     wire [12:0] goal;
-    wire [2:0]  par;
+    wire [2:0] par;
     wire [79:0] hint0, hint1;
     game_levels levels (.level(level), .target_mat(target_mat), .goal(goal), .par(par),
                         .hint0(hint0), .hint1(hint1));
@@ -65,25 +65,25 @@ module game_challenge (
     // Game flow
     always @(posedge clk) begin
         want_release <= 1'b0;
-        want_drain   <= 1'b0;
-        clear_lab    <= 1'b0;
-        exit_req     <= 1'b0;
+        want_drain <= 1'b0;
+        clear_lab <= 1'b0;
+        exit_req <= 1'b0;
 
         if (rst || enter) begin
-            phase      <= C_INTRO;
-            level      <= 4'd0;
-            secs       <= TIME_LIMIT;
-            sub        <= 6'd0;
-            used       <= 4'd0;
-            stars      <= 2'd0;
+            phase <= C_INTRO;
+            level <= 4'd0;
+            secs <= TIME_LIMIT;
+            sub <= 6'd0;
+            used <= 4'd0;
+            stars <= 2'd0;
             hint_timer <= 8'd0;
-            blink      <= 8'd0;
-            clear_lab  <= enter;
+            blink <= 8'd0;
+            clear_lab <= enter;
         end else if (restart) begin
             // pause menu RESTART: back to this level's intro with a clean lab
-            phase      <= C_INTRO;
+            phase <= C_INTRO;
             hint_timer <= 8'd0;
-            clear_lab  <= 1'b1;
+            clear_lab <= 1'b1;
         end else begin
             if (anim_tick) begin
                 blink <= blink + 8'd1;
@@ -93,22 +93,22 @@ module game_challenge (
             case (phase)
                 C_INTRO: begin
                     if (btn_ok) begin
-                        clear_lab  <= 1'b1;            // fresh lab for every attempt
-                        secs       <= TIME_LIMIT;
-                        sub        <= 6'd0;
-                        used       <= 4'd0;
+                        clear_lab <= 1'b1; // fresh lab for every attempt
+                        secs <= TIME_LIMIT;
+                        sub <= 6'd0;
+                        used <= 4'd0;
                         hint_timer <= 8'd0;
-                        phase      <= C_PLAY;
+                        phase <= C_PLAY;
                     end
                 end
 
                 C_PLAY: begin
-                    if (btn_ok)   want_release <= 1'b1;
-                    if (btn_down) want_drain   <= 1'b1;
+                    if (btn_ok) want_release <= 1'b1;
+                    if (btn_down) want_drain <= 1'b1;
                     if (released && used != 4'd15) used <= used + 4'd1;
-                    if (btn_hint) begin                  // hint costs 10 seconds
+                    if (btn_hint) begin // hint costs 10 seconds
                         hint_timer <= 8'd240;
-                        secs       <= (secs > 7'd11) ? secs - 7'd10 : 7'd1;
+                        secs <= (secs > 7'd11) ? secs - 7'd10 : 7'd1;
                     end
 
                     // clock
@@ -123,7 +123,7 @@ module game_challenge (
                     // win / lose
                     // (ignore the first half second while the old count refreshes)
                     if (target_count >= goal && (secs != TIME_LIMIT || sub > 6'd30)) begin
-                        stars <= (used <= {1'b0, par})        ? 2'd3 :
+                        stars <= (used <= {1'b0, par}) ? 2'd3 :
                                  (used <= {1'b0, par} + 4'd1) ? 2'd2 : 2'd1;
                         phase <= C_WIN;
                     end else if (secs == 7'd0) begin
@@ -146,7 +146,7 @@ module game_challenge (
                 C_FAIL: begin
                     if (btn_ok) begin
                         clear_lab <= 1'b1;
-                        phase     <= C_INTRO;
+                        phase <= C_INTRO;
                     end
                 end
 
@@ -158,7 +158,7 @@ module game_challenge (
     end
 
     // Display
-    wire [4:0] lvl_disp = (level == 4'd9) ? `SG_A : {1'b0, level + 4'd1};   // 1..9, then A
+    wire [4:0] lvl_disp = (level == 4'd9) ? `SG_A : {1'b0, level + 4'd1}; // 1..9, then A
     wire [7:0] lvl_ascii_t = (level == 4'd9) ? "1" : " ";
     wire [7:0] lvl_ascii_o = (level == 4'd9) ? "0" : (8'd49 + {4'd0, level});
     wire [3:0] secs_t = secs / 7'd10, secs_o = secs % 7'd10;

@@ -7,32 +7,32 @@
 `include "cc_defines.vh"
 
 module phys_beaker_ctrl (
-    input  wire        clk,
-    input  wire        rst,
-    input  wire        step_done,
-    input  wire [12:0] cell_count,
-    input  wire        drain_cmd,      
-    output reg         draining,
-    output wire        drain_open,
-    output wire [1:0]  sink_mode,
-    output wire        flush
+    input wire clk,
+    input wire rst,
+    input wire step_done,
+    input wire [12:0] cell_count,
+    input wire drain_cmd,
+    output reg draining,
+    output wire drain_open,
+    output wire [1:0] sink_mode,
+    output wire flush
 );
 
     assign drain_open = draining;
-    assign sink_mode  = draining ? `SINK_DELETE : `SINK_CLOSED;
-    assign flush      = draining;
+    assign sink_mode = draining ? `SINK_DELETE : `SINK_CLOSED;
+    assign flush = draining;
 
     reg [1:0] zero_steps;
     reg [5:0] steps;
 
     always @(posedge clk) begin
         if (rst) begin
-            draining   <= 1'b0;
+            draining <= 1'b0;
             zero_steps <= 2'd0;
-            steps      <= 6'd0;
+            steps <= 6'd0;
         end else if (!draining) begin
             zero_steps <= 2'd0;
-            steps      <= 6'd0;
+            steps <= 6'd0;
             if (drain_cmd) draining <= 1'b1;
         end else if (step_done) begin
             if (steps != 6'd63) steps <= steps + 6'd1;
