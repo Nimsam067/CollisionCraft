@@ -235,3 +235,30 @@ vvp /tmp/cc-text-test
 ```
 
 Simulation does not verify FPGA timing, physical OLED wiring, or the appearance on hardware.
+
+## Experimental DNA explorer and reaction pulse
+
+On the title screen, raise **SW9** to display DNA LAB on the reaction (JA)
+view. Lower SW9 to see the title menu again. SW5:4, SW3:2 and SW1:0 select
+three coding-strand DNA bases in 5-prime to 3-prime order: T=00, C=01,
+A=10, G=11. Hold the switches steady while reading. Example: `100011`
+is ATG, shown as RNA AUG and amino acid M (methionine). The result uses
+one-letter amino-acid codes. UAA/UAG/UGA display STOP. This is a single
+codon lookup, not a protein-sequence translator. Starting a material mode
+returns the display to the normal game; switch back to the title to explore DNA.
+The existing SW8/SW7 single-screen view selector still applies.
+
+The new reaction effect is a short expanding coloured diamond behind the
+result text, triggered by the existing reaction banner. Existing material
+physics and reaction rules are unchanged.
+
+AI-assisted additions: DNA explorer and lookup, reaction pulse, and tests.
+Lookup reference: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi
+All 64 codon outcomes and two transcription examples have been simulated.
+Full top-level elaboration passes Icarus Verilog. Vivado synthesis/timing and
+physical OLED appearance remain untested for these additions.
+
+```sh
+iverilog -g2012 -s tb_dna_explorer -o /tmp/cc-dna-test tests/tb_dna_explorer.v CollisionCraft/srcs/material_graphics/gfx_dna_explorer.v CollisionCraft/srcs/material_graphics/dna_codon_decode.v
+vvp /tmp/cc-dna-test
+```

@@ -312,6 +312,12 @@ module gfx_reaction_screen #(
     wire menu_arrow = (title_q || pause_on) && frame[4] && (lx >= arrow_x0) && (lx <= arrow_x0 + 7'd2) &&
                        (arrow_dy <= (arrow_x0 + 7'd2 - lx));
 
+    wire [6:0] burst_dx = lx >= 32 ? lx - 32 : 32 - lx;
+    wire [6:0] burst_dy = ly >= 53 ? ly - 53 : 53 - ly;
+    wire [7:0] burst_distance = {1'b0,burst_dx} + {1'b0,burst_dy};
+    wire [7:0] burst_radius = {2'b0,ban_age,2'b0};
+    wire burst = ban_q && !title_q && !pause_on && ban_age < 15 &&
+        burst_distance >= burst_radius && burst_distance < burst_radius + 3;
     reg [15:0] bg, out;
     always @* begin
         // background
@@ -378,6 +384,9 @@ module gfx_reaction_screen #(
         // message box
         if (in_msgbox)
             out = msg_border ? {5'd10, 6'd36, 5'd28} : blend({5'd1, 6'd3, 5'd8}, dim2(out));
+
+        // Coloured expanding reaction pulse, behind the readable text layers.
+        if (burst && !in_msgbox) out = add_flash(bcol_q, 4'd4);
 
         // text layer A
         if (a_en && a_on) begin

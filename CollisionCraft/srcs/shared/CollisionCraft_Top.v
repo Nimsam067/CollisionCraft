@@ -321,17 +321,29 @@ module CollisionCraft_Top (
         .pixel_data(jc_pd)
     );
 
+    // SW9 enables the DNA explorer only at the title. Switch inputs settle
+    // through two OLED-clock registers; hold them steady to read a result.
+    reg [6:0] dna_meta = 0, dna_sw = 0;
+    always @(posedge clk_oled) begin
+        dna_meta <= {sw[9], sw[5:0]};
+        dna_sw <= dna_meta;
+    end
+    wire dna_view = title && dna_sw[6];
+    wire [79:0] dna0, dna1, dna2, dna3;
+    gfx_dna_explorer dna(.codon(dna_sw[5:0]), .line0(dna0),
+        .line1(dna1), .line2(dna2), .line3(dna3));
+
     gfx_reaction_screen #(.ROTATE(JA_ROTATE)) screen_ja (
         .clk(clk_oled), .pixel_index(ja_pi), .sending_pixels(ja_sp), .frame_begin(ja_fb),
         .ram_addr(ja_rb_addr), .ram_data(ja_rb_data),
-        .title_view(title), .menu_sel(menu_sel),
-        .header_str(header_str), .header_col(header_col),
-        .msg_show(msg_show), .msg0(msg0), .msg1(msg1), .msg2(msg2), .msg3(msg3),
-        .banner_show(banner_show), .banner_str(banner_str), .banner_new(banner_new),
-        .banner_col(banner_col), .flash(flash), .fill_rows(fill_rows),
+        .title_view(title && !dna_view), .menu_sel(menu_sel),
+        .header_str(dna_view ? "DNA LAB   " : header_str), .header_col(dna_view ? 16'h07FF : header_col),
+        .msg_show(dna_view || msg_show), .msg0(dna_view ? dna0 : msg0), .msg1(dna_view ? dna1 : msg1), .msg2(dna_view ? dna2 : msg2), .msg3(dna_view ? dna3 : msg3),
+        .banner_show(banner_show && !dna_view), .banner_str(banner_str), .banner_new(banner_new),
+        .banner_col(banner_col), .flash(dna_view ? 4'd0 : flash), .fill_rows(fill_rows),
         .drain_open(title | bk_drain_open),
         .pause_show(paused), .pause_sel(pause_sel),
-        .pad_show(pad_show), .pad_hi(pad_hi),
+        .pad_show(pad_show && !dna_view), .pad_hi(pad_hi),
         .pixel_data(ja_pd)
     );
 
