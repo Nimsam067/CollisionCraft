@@ -186,9 +186,9 @@ module gfx_material_shader (
 
             // reaction liquids
             `M_DILUTE: begin
-                r = 10; g = 46; b = 22;
-                if (ripple == 4'd0) begin r = 16; g = 56; b = 26; end
-                if (surface) begin r = 18; g = 60; b = 28; end
+                r = 20; g = 18; b = 28; // purple, so it stands out from water and acid
+                if (ripple == 4'd0) begin r = 26; g = 30; b = 31; end // lighter ripples
+                if (surface) begin r = 28; g = 40; b = 31; end // bright surface line
             end
             `M_MOLTEN: begin
                 if (h_slow < 8'd90) begin r = 31; g = 62; b = 22; end

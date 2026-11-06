@@ -105,6 +105,10 @@ module rxn_table (
                 default: rule(`M_DILUTE, `M_STEAM, 5'd5, `RX_WARMMIX, `FX_NONE);
             endcase
         end
+        else if (a == `M_WATER && b == `M_DILUTE) begin
+            // water touching the mixture gets mixed in too (quietly, no banner)
+            rule(`M_DILUTE, `M_DILUTE, 5'd5, `RX_NONE, `FX_NONE);
+        end
         else if (a == `M_WATER && b == `M_OIL) begin
             if (ctx == TOGETHER)
                 rule(`M_EMULSION, `M_EMULSION, 5'd2, `RX_EMULSION, `FX_NONE);
@@ -189,6 +193,10 @@ module rxn_table (
         end
         else if (a == `M_ACID && b == `M_RUST) begin
             rule(`M_DILUTE, `M_SOLUTION, 5'd3, `RX_RUSTGONE, `FX_NONE);
+        end
+        else if (a == `M_ACID && b == `M_DILUTE) begin
+            // acid touching the mixture gets mixed in too (quietly, no banner)
+            rule(`M_DILUTE, `M_DILUTE, 5'd5, `RX_NONE, `FX_NONE);
         end
 
         // Oil, Fire, Hydrogen, Blast
