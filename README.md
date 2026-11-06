@@ -29,10 +29,10 @@ The same two materials can give different results depending on the order you add
 ## 1. Building it in Vivado
 
 1. Create an RTL project for the Basys3 (part `xc7a35tcpg236-1`).
-2. Add every `.v` file in this folder as a design source.
+2. Add every `.v` file under `CollisionCraft/srcs/` as a design source.
 3. Add `cc_defines.vh` too. Vivado will list it as a Verilog Header.
    - If Vivado can't find it, right-click it and choose **Set Global Include**.
-4. Add `CollisionCraft.xdc` as the constraints file.
+4. Add `CollisionCraft/constraints/my_constraints.xdc` as the constraints file.
 5. Set `CollisionCraft_Top` as the top module.
 6. Generate the bitstream and program the board.
 
@@ -48,7 +48,7 @@ localparam JA_ROTATE = 1;
 
 Flip the one that's wrong between 0 and 1. If a screen is mirrored, set `MIRROR(1)` on that screen's instance.
 
-**Timing note:** `CollisionCraft.xdc` declares the two divided clocks with `create_generated_clock`. If Vivado warns that it can't find `u_clocks/div_reg[1]/Q`, the design still works; Vivado just won't timing-check those clocks.
+**Timing note:** `my_constraints.xdc` declares two generated clocks. If Vivado cannot find a clock pin, check the generated-clock constraints and timing reports before trusting the bitstream; an unchecked clock is not evidence that timing is met.
 
 ---
 
@@ -223,3 +223,15 @@ Everything adjustable is in `cc_defines.vh`:
 - Beaker capacity: `BEAKER_FULL`
 
 Material behaviour lives in `mat_properties.v`, reaction speeds (the `prob` column) in `rxn_table.v`, and challenge goals in `game_levels.v`.
+
+
+## OLED text simulation
+
+The title screen includes a sparse animated sparkle layer behind the menu and logo. Centred text wider than the display is clipped at its edges instead of disappearing. To run the pixel-by-pixel text-rendering check with Icarus Verilog from the repository root:
+
+```sh
+iverilog -g2012 -s tb_gfx_text_line -o /tmp/cc-text-test tests/tb_gfx_text_line.v CollisionCraft/srcs/material_graphics/gfx_text_line.v CollisionCraft/srcs/material_graphics/gfx_font_rom.v
+vvp /tmp/cc-text-test
+```
+
+Simulation does not verify FPGA timing, physical OLED wiring, or the appearance on hardware.

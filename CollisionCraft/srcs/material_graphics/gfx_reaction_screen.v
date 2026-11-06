@@ -356,7 +356,15 @@ module gfx_reaction_screen #(
         end
 
         // title screen dims the simulation so the logo stands out
-        if (title_q) out = dim2(out);
+        if (title_q) begin
+            out = dim2(out);
+            // Sparse, slowly twinkling pixels give the title a laboratory sky.
+            // They sit behind every menu, logo and message layer.
+            if (((lx[3:0] ^ ly[3:0]) == 4'hb) &&
+                ((lx[5:4] ^ ly[5:4]) == 2'b10) &&
+                (frame[6:5] == {lx[0], ly[1]}))
+                out = {5'd5, 6'd18, 5'd18};
+        end
 
         // pause dims everything, the popup box comes
         if (pause_on) out = dim2(out);

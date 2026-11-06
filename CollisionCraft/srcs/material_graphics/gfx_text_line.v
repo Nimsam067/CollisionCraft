@@ -27,8 +27,10 @@ module gfx_text_line (
 
     // Text starts
     // Width in pixels, normal letters (5+1), big ones (10+2)
-    wire [7:0] width = scale2 ? (len * 8'd12 - 8'd2) : (len * 8'd6 - 8'd1);
-    wire signed [8:0] cx = $signed({1'b0, 8'd64 - width}) >>> 1;
+    wire [7:0] width = (len == 0) ? 8'd0 :
+                       scale2 ? (len * 8'd12 - 8'd2) : (len * 8'd6 - 8'd1);
+    // Signed subtraction keeps oversized labels centred and clipped at the edges.
+    wire signed [8:0] cx = (9'sd64 - $signed({1'b0, width})) >>> 1;
     wire signed [8:0] x0 = centre ? cx : ox;
 
     // Position of this pixel relative to the text's top left corner
@@ -43,7 +45,7 @@ module gfx_text_line (
     wire [3:0] col_in = scale2 ? ((dxu % 8'd12) >> 1) : (dxu % 8'd6);
     wire [2:0] row_in = scale2 ? dyu[3:1] : dyu[2:0];
 
-    wire inside = (dx >= 0) && (dy >= 0) &&
+    wire within_text = (dx >= 0) && (dy >= 0) &&
                   (scale2 ? (dx < len * 12 && dy < 14)
                           : (dx < len * 6 && dy < 7));
 
@@ -57,6 +59,6 @@ module gfx_text_line (
         .bits (bits)
     );
 
-    assign on = inside && (col_in < 4'd5) && bits[3'd4 - col_in[2:0]];
+    assign on = within_text && (col_in < 4'd5) && bits[3'd4 - col_in[2:0]];
 
 endmodule
