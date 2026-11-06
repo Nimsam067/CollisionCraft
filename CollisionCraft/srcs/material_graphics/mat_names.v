@@ -43,7 +43,7 @@ module mat_names (
             `M_MUD: begin name="MUD       "; code3="MUD"; sig_color=rgb(5'd18, 6'd24, 5'd6); end
             `M_CLAY: begin name="CLAY      "; code3="CLY"; sig_color=rgb(5'd26, 6'd32, 5'd14); end
             `M_RUST: begin name="RUST      "; code3="RST"; sig_color=rgb(5'd28, 6'd22, 5'd4); end
-            `M_DILUTE: begin name="DILUTE    "; code3="DIL"; sig_color=rgb(5'd20, 6'd18, 5'd28); end
+            `M_DILUTE: begin name="DILUTE    "; code3="DIL"; sig_color=rgb(5'd18, 6'd60, 5'd20); end
             `M_GLASS: begin name="GLASS     "; code3="GLS"; sig_color=rgb(5'd16, 6'd58, 5'd30); end
             `M_SANDSTONE: begin name="SANDSTONE "; code3="SST"; sig_color=rgb(5'd28, 6'd40, 5'd12); end
             `M_MOLTEN: begin name="MOLTEN    "; code3="MLT"; sig_color=rgb(5'd31, 6'd48, 5'd8); end
