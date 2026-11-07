@@ -121,7 +121,7 @@ module phys_move_rules (
                 else if (go_left_first && can_fall(dl_cls, dl_dens, c_dens) && is_open(l_cls))
                     tgt = S_DL;
                 else if (can_fall(dr_cls, dr_dens, c_dens) && is_open(r_cls))
-                    tgt = sS_DR;
+                    tgt = S_DR;
                 else if (can_fall(dl_cls, dl_dens, c_dens) && is_open(l_cls))
                     tgt = S_DL;
                 // spreading sideways is where viscosity ("flow") matters
