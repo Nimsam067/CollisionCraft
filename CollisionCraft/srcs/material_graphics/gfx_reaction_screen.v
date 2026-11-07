@@ -312,6 +312,14 @@ module gfx_reaction_screen #(
     wire menu_arrow = (title_q || pause_on) && frame[4] && (lx >= arrow_x0) && (lx <= arrow_x0 + 7'd2) &&
                        (arrow_dy <= (arrow_x0 + 7'd2 - lx));
 
+    // Some effects
+    wire [6:0] burst_dx = (lx >= 7'd32) ? lx - 7'd32 : 7'd32 - lx;
+    wire [6:0] burst_dy = (ly >= 7'd53) ? ly - 7'd53 : 7'd53 - ly;
+    wire [7:0] burst_dist = {1'b0, burst_dx} + {1'b0, burst_dy};
+    wire [7:0] burst_r = {2'b0, ban_age, 2'b0};
+    wire burst = ban_q && !title_q && !pause_on && (ban_age < 4'd15) &&
+                 (burst_dist >= burst_r) && (burst_dist < burst_r + 8'd3);
+
     reg [15:0] bg, out;
     always @* begin
         // background
@@ -356,7 +364,13 @@ module gfx_reaction_screen #(
         end
 
         // title screen dims the simulation so the logo stands out
-        if (title_q) out = dim2(out);
+        if (title_q) begin
+            out = dim2(out);
+            // some effects
+            if (((lx[3:0] ^ ly[3:0]) == 4'hb) && ((lx[5:4] ^ ly[5:4]) == 2'b10) &&
+                (frame[6:5] == {lx[0], ly[1]}))
+                out = {5'd5, 6'd18, 5'd18};
+        end
 
         // pause dims everything, the popup box comes
         if (pause_on) out = dim2(out);
@@ -370,6 +384,9 @@ module gfx_reaction_screen #(
         // message box
         if (in_msgbox)
             out = msg_border ? {5'd10, 6'd36, 5'd28} : blend({5'd1, 6'd3, 5'd8}, dim2(out));
+
+        // reaction pulse, under the text layers
+        if (burst && !in_msgbox) out = add_flash(bcol_q, 4'd4);
 
         // text layer A
         if (a_en && a_on) begin

@@ -29,10 +29,10 @@ The same two materials can give different results depending on the order you add
 ## 1. Building it in Vivado
 
 1. Create an RTL project for the Basys3 (part `xc7a35tcpg236-1`).
-2. Add every `.v` file in this folder as a design source.
+2. Add every `.v` file under `CollisionCraft/srcs/` as a design source.
 3. Add `cc_defines.vh` too. Vivado will list it as a Verilog Header.
    - If Vivado can't find it, right-click it and choose **Set Global Include**.
-4. Add `CollisionCraft.xdc` as the constraints file.
+4. Add `CollisionCraft/constraints/my_constraints.xdc` as the constraints file.
 5. Set `CollisionCraft_Top` as the top module.
 6. Generate the bitstream and program the board.
 
@@ -48,7 +48,7 @@ localparam JA_ROTATE = 1;
 
 Flip the one that's wrong between 0 and 1. If a screen is mirrored, set `MIRROR(1)` on that screen's instance.
 
-**Timing note:** `CollisionCraft.xdc` declares the two divided clocks with `create_generated_clock`. If Vivado warns that it can't find `u_clocks/div_reg[1]/Q`, the design still works; Vivado just won't timing-check those clocks.
+**Timing note:** `my_constraints.xdc` declares the two divided clocks with `create_generated_clock`. If Vivado warns that it can't find `u_clocks/div_reg[1]/Q` or `div_reg[3]/Q`, those clocks are not being timing-checked, so check the timing report before trusting the bitstream.
 
 ---
 

@@ -341,16 +341,18 @@ module phys_engine #(
 
                 // INJECTION: try to place a grain at a random spot of the spawn area
                 S_INJ_RD: begin
-                    if ((inj_src ? src1_valid : src0_valid)) begin
+                    if (inj_src ? src1_pop : src0_pop) begin
+                        // Wait a cycle, or the last grain gets placed twice.
+                    end else if ((inj_src ? src1_valid : src0_valid)) begin
                         inj_x <= inj_new_x;
                         inj_y <= inj_new_y;
                         inj_blocked <= probe_ovr;
                         state <= S_INJ_WR;
                     end else begin
-                        // nothing to place from this source: move on
+                        // nothing to place from this source so move on
                         inj_try <= 3'd0;
                         if (inj_src)
-                            state <= S_NEXT; // sy is still 96: S_NEXT starts the sweep
+                            state <= S_NEXT; // sy is still 96, S_NEXT starts the sweep
                         else
                             inj_src <= 1'b1;
                     end
@@ -364,7 +366,7 @@ module phys_engine #(
                     if (inj_try == INJ_TRIES - 1) begin
                         inj_try <= 3'd0;
                         if (inj_src) begin
-                            state <= S_NEXT; // sy is still 96: S_NEXT starts the sweep
+                            state <= S_NEXT; // sy is still 96, S_NEXT starts the sweep
                         end else begin
                             inj_src <= 1'b1;
                             state <= S_INJ_RD;
@@ -393,7 +395,6 @@ module phys_engine #(
                     slots[16*pend_slot +: 16] <= arriving;
 
                     if (pend_slot == 4'd0) begin
-                        // the centre cell has arrived: is it worth processing?
                         if (arriving[`C_MAT] == `M_EMPTY) begin
                             state <= S_NEXT;
                         end else begin
@@ -402,7 +403,7 @@ module phys_engine #(
                             visit_mat <= arriving[`C_MAT];
 
                             if (age_mode) begin
-                                // ageing sweep: just count the tag down
+                                // ageing sweep, just count the tag down
                                 if (arriving[`C_TAG] != `TAG_OLD) begin
                                     wa_en <= 1'b1;
                                     wa_addr <= {sy, sx};

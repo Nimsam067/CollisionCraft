@@ -237,7 +237,9 @@ module game_fsm (
     // Release / drain only when physically possible
     wire any_ready = (jb_state == `CH_READY) || (jc_state == `CH_READY);
     assign release_cmd = want_release && any_ready && !lab_busy && !ja_draining && !paused;
-    assign drain_cmd = want_drain && !ja_draining && !lab_busy && (ja_count != 13'd0) && !paused;
+    // A full beaker can always be drained, even mid-flow
+    assign drain_cmd = want_drain && !ja_draining && (!lab_busy || beaker_full) &&
+                       (ja_count != 13'd0) && !paused;
 
     // Recipe line
     wire [23:0] code_b, code_c;
