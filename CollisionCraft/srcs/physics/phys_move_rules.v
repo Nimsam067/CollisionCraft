@@ -113,12 +113,15 @@ module phys_move_rules (
                 end
                 else if (u_cls == `CL_LIQUID && u_dens > c_dens && rnd[6])
                     tgt = S_U; // lighter liquid rises
+                // water slowly soaks down through mud, so it can reach the sand below
+                else if (c_mat == `M_WATER && nb_mat[5:0] == `M_MUD && rnd[7:5] == 3'd0)
+                    tgt = S_D;
                 // sliding down a slope is gravity: every liquid does it,
                 // even gloopy lava, so nothing gets stuck on the hopper walls
                 else if (go_left_first && can_fall(dl_cls, dl_dens, c_dens) && is_open(l_cls))
                     tgt = S_DL;
                 else if (can_fall(dr_cls, dr_dens, c_dens) && is_open(r_cls))
-                    tgt = S_DR;
+                    tgt = sS_DR;
                 else if (can_fall(dl_cls, dl_dens, c_dens) && is_open(l_cls))
                     tgt = S_DL;
                 // spreading sideways is where viscosity ("flow") matters
